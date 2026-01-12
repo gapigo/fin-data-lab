@@ -1,0 +1,12 @@
+export { HomeView } from './HomeView';
+export { PerformanceView } from './PerformanceView';
+export { RealtimeView } from './RealtimeView';
+export { UsersView } from './UsersView';
+export { TrafficView } from './TrafficView';
+export { EngagementView } from './EngagementView';
+export { RevenueView } from './RevenueView';
+export { SalesView } from './SalesView';
+export { ProductsView } from './ProductsView';
+export { TrendsView } from './TrendsView';
+export { DistributionView } from './DistributionView';
+export { PredictionsView } from './PredictionsView';
