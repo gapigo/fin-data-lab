@@ -1,8 +1,8 @@
 import sys; sys.path.append('..')
-import sys
 import os
 import pandas as pd
 import re
+import csv
 import argparse
 from sqlalchemy import text
 from common.postgresql import PostgresConnector as db
@@ -33,49 +33,79 @@ class CVMIngestor:
             if i == 0 or p != parts[i-1]: clean_parts.append(p)
         return "_".join(clean_parts)
 
-    def reconcile_columns(self, conn, df, s_quoted, t_quoted):
-        """Verifica colunas faltantes e adiciona se forem até 5."""
-        # Busca colunas atuais da tabela no Postgres
-        query = text(f"""
-            SELECT column_name 
+    def reconcile_and_convert(self, conn, df, s_quoted, t_quoted):
+        """
+        1. Adiciona colunas novas (limite 5).
+        2. Resolve mismatch de tipo alterando a coluna no banco para TEXT.
+        3. Retorna a lista de colunas que devem ser tratadas como string no DF.
+        """
+        # Busca metadados das colunas (nome e tipo)
+        query = text("""
+            SELECT column_name, data_type 
             FROM information_schema.columns 
             WHERE table_schema = :schema AND table_name = :table
         """)
-        existing_cols = {row[0] for row in conn.execute(query, {"schema": s_quoted.strip('"'), "table": t_quoted.strip('"')})}
+        db_info = {row[0]: row[1] for row in conn.execute(query, {
+            "schema": s_quoted.strip('"'), 
+            "table": t_quoted.strip('"')
+        })}
         
+        existing_cols = set(db_info.keys())
         df_cols = set(df.columns)
+        
+        # 1. Adicionar colunas faltantes (Limite 5)
         missing_cols = df_cols - existing_cols
-
         if 0 < len(missing_cols) <= 5:
-            print(f"  [SCHEMA] Adicionando colunas faltantes: {missing_cols}")
+            print(f"  [SCHEMA] Adicionando novas colunas: {missing_cols}")
             for col in missing_cols:
-                # Mapeamento simples de tipo: se for numérico no DF, tenta double, senão text
-                col_type = "DOUBLE PRECISION" if pd.api.types.is_numeric_dtype(df[col]) else "TEXT"
-                conn.execute(text(f"ALTER TABLE {s_quoted}.{t_quoted} ADD COLUMN {col} {col_type};"))
+                # Criamos colunas novas sempre como TEXT para máxima compatibilidade
+                conn.execute(text(f"ALTER TABLE {s_quoted}.{t_quoted} ADD COLUMN {col} TEXT;"))
+                db_info[col] = 'text' # Atualiza info local
         elif len(missing_cols) > 5:
-            raise Exception(f"Divergência de schema muito grande ({len(missing_cols)} colunas). Recomenda-se rodar com --full.")
+            raise Exception(f"Divergência de schema muito grande ({len(missing_cols)} colunas).")
+
+        # 2. Verificar Mismatch de tipo e forçar String no DataFrame
+        cols_to_force_string = []
+        for col in df.columns:
+            if col in db_info:
+                db_type = db_info[col].lower()
+                
+                # Se a coluna no banco é string, o DF precisa ser string para evitar erro de objeto
+                if 'char' in db_type or 'text' in db_type:
+                    cols_to_force_string.append(col)
+                else:
+                    # Se o banco é numérico mas o DF não é, mudamos a COLUNA DO BANCO para TEXT
+                    is_df_numeric = pd.api.types.is_numeric_dtype(df[col])
+                    if not is_df_numeric:
+                        print(f"  [TYPE MISMATCH] Alterando coluna {col} no banco para TEXT (era {db_type})")
+                        conn.execute(text(f"ALTER TABLE {s_quoted}.{t_quoted} ALTER COLUMN {col} TYPE TEXT;"))
+                        cols_to_force_string.append(col)
+        
+        return cols_to_force_string
 
     def fast_bulk_ingest(self, df, table_name, is_first_file, current_file):
         s_quoted, t_quoted, s_raw, t_raw = self.connector._split_table(table_name)
         
         with self.connector.engine.begin() as conn:
-            # 1. Se a tabela não existe, is_first_file deve ser True
             table_exists = conn.execute(text(f"SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_schema = '{s_raw}' AND table_name = '{t_raw}')")).scalar()
             
             if is_first_file or not table_exists:
-                print(f"  [FULL] Criando/Resetando tabela {table_name}")
+                print(f"  [FULL] Resetando tabela {table_name}")
                 conn.execute(text(f"DROP TABLE IF EXISTS {s_quoted}.{t_quoted} CASCADE;"))
+                # Na criação inicial, tudo bem deixar o pandas inferir
                 df.head(0).to_sql(t_raw, conn, schema=s_raw, if_exists='replace', index=False)
                 conn.execute(text(f"ALTER TABLE {s_quoted}.{t_quoted} ADD COLUMN __id SERIAL PRIMARY KEY;"))
             else:
-                # 2. Reconciliação de colunas antes do Delete/Insert
-                self.reconcile_columns(conn, df, s_quoted, t_quoted)
+                # Reconciliação e obtenção de colunas que precisam ser castadas para string
+                str_columns = self.reconcile_and_convert(conn, df, s_quoted, t_quoted)
                 
-                # 3. Limpeza para evitar duplicidade
+                # Converte colunas problemáticas no DataFrame para string, lidando com NaNs
+                for col in str_columns:
+                    df[col] = df[col].astype(str).replace(['nan', 'None', '<NA>'], None)
+
                 print(f"  [CLEANUP] Removendo registros de: {current_file}")
                 conn.execute(text(f"DELETE FROM {s_quoted}.{t_quoted} WHERE __file = :filename"), {"filename": current_file})
             
-            # 4. Ingestão
             df.to_sql(t_raw, conn, schema=s_raw, if_exists='append', index=False, method='multi', chunksize=15000)
 
     def get_all_csvs(self, start_path, skip_hist=False):
@@ -96,11 +126,14 @@ class CVMIngestor:
             if not table_name: continue
             
             try:
-                df = pd.read_csv(file_path, sep=';', encoding='iso-8859-1', low_memory=False, on_bad_lines='skip')
+                # Usando on_bad_lines para evitar o ParserError que vimos antes
+                df = pd.read_csv(file_path, sep=';', encoding='iso-8859-1', low_memory=False, on_bad_lines='skip', quoting=csv.QUOTE_NONE)
                 df.columns = [c.lower() for c in df.columns]
-                if '__id' in df.columns: df = df.drop(columns=['__id'])
-                df['__file'] = file # Usamos apenas o nome do arquivo para o delete
                 
+                # Sua regra de negócio: dropar __id se existir no arquivo
+                if '__id' in df.columns: df = df.drop(columns=['__id'])
+                df['__file'] = file 
+
                 is_first = False
                 if table_name not in self.tables_cleaned and self.full_clean:
                     is_first = True
@@ -111,7 +144,6 @@ class CVMIngestor:
             except Exception as e:
                 print(f"Erro em {file}: {e}")
 
-    # Métodos run_update_hot, run_specify, run_complete_missing permanecem como na versão anterior...
     def run_update_hot(self):
         print("--- MODO UPDATE HOT ---")
         targets = [
