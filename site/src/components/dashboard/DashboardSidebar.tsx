@@ -30,6 +30,14 @@ interface NavGroup {
 
 const navGroups: NavGroup[] = [
   {
+    id: 'funds',
+    label: 'Fundos',
+    color: 'nav-group-1',
+    items: [
+      { id: 'view-fund', label: 'Visualizar fundo', icon: Target },
+    ]
+  },
+  {
     id: 'overview',
     label: 'Visão Geral',
     color: 'nav-group-1',
@@ -133,8 +141,8 @@ export const DashboardSidebar = ({
                       style={
                         isActive
                           ? {
-                              backgroundColor: `hsl(var(--${group.color}) / 0.15)`,
-                            }
+                            backgroundColor: `hsl(var(--${group.color}) / 0.15)`,
+                          }
                           : {}
                       }
                     >

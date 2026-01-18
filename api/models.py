@@ -29,4 +29,20 @@ class QuotaData(BaseModel):
 
 class FundHistory(BaseModel):
     cnpj_fundo: str
-    history: List[QuotaData]
+
+class FundMetrics(BaseModel):
+    rentabilidade_mes: dict  # {year: {month: value}}
+    rentabilidade_ano: dict # {year: value}
+    rentabilidade_acumulada: dict # {year: value}
+    volatilidade_12m: Optional[float] = None
+    sharpe_12m: Optional[float] = None
+    consistency: dict # {pos_months: int, neg_months: int, ...}
+
+class CompositionItem(BaseModel):
+    name: str
+    value: float
+    percentage: float
+
+class FundComposition(BaseModel):
+    items: List[CompositionItem]
+    date: Optional[str] = None

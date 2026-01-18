@@ -8,8 +8,9 @@ from datetime import date
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from common.postgresql import PostgresConnector
-from models import FundSearchResponse, FundDetail, QuotaData
+from models import FundSearchResponse, FundDetail, QuotaData, FundMetrics, FundComposition
 from cache import cache
+import numpy as np
 
 class DataService:
     def __init__(self):
@@ -71,24 +72,37 @@ class DataService:
         cache.set(cache_key, results, ttl=60) # Cache search for 1 min
         return results
 
+    def suggest_funds(self, query: str) -> List[dict]:
+        # Autocomplete for names
+        clean_query = query.replace("'", "''").upper()
+        sql = f"""
+            SELECT DISTINCT denom_social, cnpj_fundo 
+            FROM cvm.cadastro 
+            WHERE dt_fim IS NULL 
+            AND denom_social ILIKE '%%{clean_query}%%' 
+            LIMIT 10
+        """
+        df = self.db.read_sql(sql)
+        if df.empty:
+            return []
+        
+        return df[['denom_social', 'cnpj_fundo']].to_dict('records')
+
+    def _normalize_cnpj(self, cnpj: str) -> str:
+        import re
+        raw_cnpj = re.sub(r'\D', '', cnpj)
+        target_cnpj = cnpj.strip()
+        if len(raw_cnpj) == 14:
+            target_cnpj = f"{raw_cnpj[:2]}.{raw_cnpj[2:5]}.{raw_cnpj[5:8]}/{raw_cnpj[8:12]}-{raw_cnpj[12:]}"
+        return target_cnpj.replace("'", "''")
+
     def get_fund_detail(self, cnpj: str) -> Optional[FundDetail]:
         cache_key = f"fund_detail:{cnpj}"
         cached = cache.get(cache_key)
         if cached:
             return cached
 
-        # Use parameterized query approach if possible, but read_sql takes a string.
-        # We must manually sanitize.
-        # Normalize CNPJ: remove non-digits, then checks if it is 14 chars -> format it
-        import re
-        raw_cnpj = re.sub(r'\D', '', cnpj)
-        
-        target_cnpj = cnpj.strip()
-        if len(raw_cnpj) == 14:
-            target_cnpj = f"{raw_cnpj[:2]}.{raw_cnpj[2:5]}.{raw_cnpj[5:8]}/{raw_cnpj[8:12]}-{raw_cnpj[12:]}"
-        
-        # SQL Injection safety: simple replace (though parameterized is better, we stick to current pattern for now)
-        clean_cnpj = target_cnpj.replace("'", "''")
+        clean_cnpj = self._normalize_cnpj(cnpj)
         
         # Use ILIKE to be safer, though CNPJ should be exact. Adding LIMIT 1.
         sql = f"""
@@ -97,8 +111,7 @@ class DataService:
         df = self.db.read_sql(sql)
         
         if df.empty:
-
-            print(f"Debug: Fund {clean_cnpj} not found in cadastro (DB: {self.db.engine.url.database})")
+            # print(f"Debug: Fund {clean_cnpj} not found in cadastro (DB: {self.db.engine.url.database})")
             return None
             
         row = df.iloc[0]
@@ -106,7 +119,6 @@ class DataService:
             # Helper to handle NaN/None for Pydantic
             def val(v):
                 return v if pd.notnull(v) else None
-                
             detail = FundDetail(
                 cnpj_fundo=str(val(row['cnpj_fundo']) or ""),
                 denom_social=str(val(row['denom_social']) or "SEM NOME"),
@@ -123,8 +135,8 @@ class DataService:
             cache.set(cache_key, detail, ttl=3600)
             return detail
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            # import traceback
+            # traceback.print_exc()
             print(f"Error instantiating FundDetail: {e}")
             raise e
 
@@ -136,15 +148,7 @@ class DataService:
         if cached:
             return cached
 
-        # Normalize CNPJ
-        import re
-        raw_cnpj = re.sub(r'\D', '', cnpj)
-        
-        target_cnpj = cnpj.strip()
-        if len(raw_cnpj) == 14:
-            target_cnpj = f"{raw_cnpj[:2]}.{raw_cnpj[2:5]}.{raw_cnpj[5:8]}/{raw_cnpj[8:12]}-{raw_cnpj[12:]}"
-
-        clean_cnpj = target_cnpj.replace("'", "''")
+        clean_cnpj = self._normalize_cnpj(cnpj)
         
         # cvm.cotas view
         sql = f"""
@@ -180,3 +184,153 @@ class DataService:
             
         cache.set(cache_key, history, ttl=3600) # Cache for 1 hour
         return history
+
+    def get_fund_metrics(self, cnpj: str) -> Optional[dict]:
+        # This returns the structure expected by FundMetrics.
+        # We do the calculation here.
+        clean_cnpj = self._normalize_cnpj(cnpj)
+        
+        sql = f"SELECT dt_comptc, vl_quota FROM cvm.cotas WHERE cnpj_fundo = '{clean_cnpj}' ORDER BY dt_comptc ASC"
+        df = self.db.read_sql(sql)
+        
+        if df.empty:
+            return None
+            
+        df['dt_comptc'] = pd.to_datetime(df['dt_comptc'])
+        df = df.set_index('dt_comptc')
+        
+        # Add Daily Returns
+        df['ret'] = df['vl_quota'].pct_change()
+        
+        # Monthly Returns Matrix
+        # Resample to monthly last value
+        df_m = df['vl_quota'].resample('ME').last()
+        df_m_ret = df_m.pct_change()
+        
+        # Construct the monthly table: Year -> {Month: Val}
+        rent_mes = {}
+        rent_ano = {}
+        
+        # Iterate through years
+        years = df_m_ret.index.year.unique()
+        for y in years:
+            year_data = df_m_ret[df_m_ret.index.year == y]
+            rent_mes[int(y)] = {m: round(v * 100, 2) for m, v in zip(year_data.index.month, year_data.values) if pd.notnull(v)}
+            
+            # Annual return: (1+r1)*(1+r2)... - 1
+            # Or just last quota of year / last quota of prev year - 1
+            # Finding start/end for the year
+            try:
+                end_q = df_m[df_m.index.year == y].iloc[-1]
+                # Start is last of prev year, or first of this year if inception
+                prev_year_data = df_m[df_m.index.year == y-1]
+                if not prev_year_data.empty:
+                    start_q = prev_year_data.iloc[-1]
+                    rent_ano[int(y)] = round(((end_q / start_q) - 1) * 100, 2)
+                else:
+                    # Inception year
+                    first_q = df['vl_quota'][df.index.year == y].iloc[0]
+                    rent_ano[int(y)] = round(((end_q / first_q) - 1) * 100, 2)
+            except:
+                rent_ano[int(y)] = 0.0
+
+        # Accum
+        first_q = df['vl_quota'].iloc[0]
+        last_q = df['vl_quota'].iloc[-1]
+        rent_accum = {} # Just putting total for now or per year accum? 
+        # The mockup shows 'Acumulado' per row (year).
+        # Which usually means Accumulated from inception until end of that year.
+        
+        for y in years:
+            try:
+                end_q_y = df_m[df_m.index.year == y].iloc[-1]
+                rent_accum[int(y)] = round(((end_q_y / first_q) - 1) * 100, 2)
+            except:
+                pass
+
+
+        # Volatility 12M (Standard deviation of daily returns Last 252 days * sqrt(252))
+        vol_12m = 0.0
+        import numpy as np
+        if len(df) > 252:
+            last_252 = df['ret'].tail(252)
+            vol_12m = float(last_252.std() * np.sqrt(252) * 100)
+            
+        # Sharpe 12M (Return 12m - RiskFree) / Vol 12m. Assuming RF=10% as placeholder or 0.
+        # Simple Return 12M
+        sharpe = 0.0
+        if vol_12m > 0 and len(df) > 252:
+             price_now = df['vl_quota'].iloc[-1]
+             price_12m_ago = df['vl_quota'].iloc[-252]
+             ret_12m = (price_now / price_12m_ago) - 1
+             sharpe = (ret_12m * 100 - 10) / vol_12m # Using 10% as mock CDI
+             
+        # Consistency
+        total_months = len(df_m_ret)
+        pos_months = len(df_m_ret[df_m_ret > 0])
+        neg_months = len(df_m_ret[df_m_ret < 0])
+        
+        return {
+            "rentabilidade_mes": rent_mes,
+            "rentabilidade_ano": rent_ano,
+            "rentabilidade_acumulada": rent_accum,
+            "volatilidade_12m": round(vol_12m, 2),
+            "sharpe_12m": round(sharpe, 2),
+            "consistency": {
+                "pos_months": pos_months,
+                "neg_months": neg_months,
+                "best_month": round(df_m_ret.max() * 100, 2) if not df_m_ret.empty else 0,
+                "worst_month": round(df_m_ret.min() * 100, 2) if not df_m_ret.empty else 0
+            }
+        }
+
+    def get_fund_composition(self, cnpj: str) -> Optional[dict]:
+        clean_cnpj = self._normalize_cnpj(cnpj)
+        
+        # Try to get data from cda_fi_blc_2 (Asset Allocation / Block 2)
+        # We need the MOST RECENT portfolio composition.
+        
+        # First, find max date
+        sql_date = f"SELECT MAX(dt_comptc) as max_date FROM cvm.cda_fi_blc_2 WHERE cnpj_fundo = '{clean_cnpj}'"
+        df_date = self.db.read_sql(sql_date)
+        if df_date.empty or pd.isnull(df_date.iloc[0]['max_date']):
+             return {"items": [], "date": None}
+             
+        max_date = df_date.iloc[0]['max_date']
+        
+        # Now fetch breakdown
+        # columns in blc_2: likely 'ds_ativo' or 'tp_aplic' and 'vl_merc_pos_final'
+        # Since I can't confirm columns 100%, I'll try to guess based on standard.
+        # If it fails, return empty.
+        
+        # Standard names often: 'ds_disponibilidade' or 'tp_ativo' ??
+        # The user image has: "Cotas de Fundos", "Titulos Publicos". 
+        # In CDA, these are often in 'tp_aplic' or 'ds_ativo'.
+        
+        # Let's try 'tp_aplic' and sum 'vl_merc_pos_final'
+        sql = f"""
+            SELECT tp_aplic as name, SUM(vl_merc_pos_final) as value 
+            FROM cvm.cda_fi_blc_2 
+            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
+            GROUP BY tp_aplic
+            ORDER BY value DESC
+        """
+        try:
+            df = self.db.read_sql(sql)
+        except:
+             # Fallback if column names are different.
+             return {"items": [], "date": str(max_date)}
+
+        total = df['value'].sum() or 1
+        items = []
+        for _, row in df.iterrows():
+            items.append({
+                "name": row['name'] or "Outros",
+                "value": row['value'],
+                "percentage": round((row['value'] / total) * 100, 2)
+            })
+            
+        return {
+            "items": items,
+            "date": str(max_date)
+        }

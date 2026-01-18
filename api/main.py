@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
 
-from models import FundSearchResponse, FundDetail, QuotaData, FundHistory
+from models import FundSearchResponse, FundDetail, QuotaData, FundHistory, FundMetrics, FundComposition
 from service import DataService
 
 app = FastAPI(title="Fin Data Lab API", description="API for CVM Fund Data")
@@ -33,6 +33,10 @@ def search_funds(
     """
     return service.search_funds(query=q, limit=limit)
 
+@app.get("/funds/suggest")
+def suggest_funds(q: str = Query(..., min_length=2)):
+    return service.suggest_funds(q)
+
 @app.get("/funds/{cnpj}", response_model=FundDetail)
 def get_fund_details(cnpj: str):
     """
@@ -54,6 +58,20 @@ def get_fund_history(
     history = service.get_fund_history(cnpj, start_date)
     # Return empty list is valid if no data
     return history
+
+@app.get("/funds/{cnpj}/metrics", response_model=FundMetrics)
+def get_fund_metrics(cnpj: str):
+    metrics = service.get_fund_metrics(cnpj)
+    if not metrics:
+         raise HTTPException(status_code=404, detail="Metrics not found")
+    return metrics
+
+@app.get("/funds/{cnpj}/composition", response_model=FundComposition)
+def get_fund_composition(cnpj: str):
+    comp = service.get_fund_composition(cnpj)
+    if not comp:
+         raise HTTPException(status_code=404, detail="Composition not found")
+    return comp
 
 if __name__ == "__main__":
     import uvicorn

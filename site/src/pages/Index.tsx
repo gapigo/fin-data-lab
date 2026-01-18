@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { ContextTabs } from '@/components/dashboard/ContextTabs';
+import { FundSelector } from '@/components/dashboard/FundSelector';
+import FundDetails from './FundDetails';
 import {
   HomeView,
   PerformanceView,
@@ -32,6 +34,11 @@ const viewConfigs: Record<string, ViewConfig> = {
       { id: 'metrics', label: 'Métricas' },
       { id: 'reports', label: 'Relatórios' },
     ],
+  },
+  'view-fund': {
+    id: 'view-fund',
+    title: 'Análise de Fundos',
+    tabs: []
   },
   performance: {
     id: 'performance',
@@ -138,6 +145,7 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeView, setActiveView] = useState('home');
   const [activeTab, setActiveTab] = useState('overview');
+  const [selectedFundCnpj, setSelectedFundCnpj] = useState("41776752000126");
 
   const currentViewConfig = viewConfigs[activeView] || viewConfigs.home;
 
@@ -150,6 +158,15 @@ const Index = () => {
     switch (activeView) {
       case 'home':
         return <HomeView />;
+      case 'view-fund':
+        return (
+          <div className="flex flex-col min-h-screen bg-[#0F172A]">
+            <div className="py-6 px-6 border-b border-slate-800 bg-[#0F172A]">
+              <FundSelector onSelect={(cnpj) => setSelectedFundCnpj(cnpj)} selectedCnpj={selectedFundCnpj} />
+            </div>
+            <FundDetails cnpj={selectedFundCnpj} />
+          </div>
+        );
       case 'performance':
         return <PerformanceView />;
       case 'realtime':
@@ -178,7 +195,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-slate-950 text-slate-100">
       <DashboardHeader
         onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         sidebarCollapsed={sidebarCollapsed}
@@ -192,21 +209,23 @@ const Index = () => {
         />
 
         <main className="flex-1 min-w-0">
-          <div className="border-b border-border bg-card/30">
-            <div className="px-6 pt-6 pb-0">
-              <h1 className="text-2xl font-bold mb-1">
-                {currentViewConfig.title}
-              </h1>
-              <p className="text-sm text-muted-foreground mb-4">
-                Análise completa e métricas em tempo real
-              </p>
+          {activeView !== 'view-fund' && (
+            <div className="border-b border-border bg-card/30">
+              <div className="px-6 pt-6 pb-0">
+                <h1 className="text-2xl font-bold mb-1">
+                  {currentViewConfig.title}
+                </h1>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Análise completa e métricas em tempo real
+                </p>
+              </div>
+              <ContextTabs
+                tabs={currentViewConfig.tabs}
+                activeTab={activeTab}
+                onTabChange={setActiveTab}
+              />
             </div>
-            <ContextTabs
-              tabs={currentViewConfig.tabs}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-            />
-          </div>
+          )}
 
           <div className="overflow-auto">{renderView()}</div>
         </main>
