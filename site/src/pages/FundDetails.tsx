@@ -381,6 +381,217 @@ const FundDetails = ({ cnpj: propCnpj }: { cnpj?: string }) => {
 
                 </div>
 
+                {/* Technical Charts Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Cotistas */}
+                    <Card className="border-0 shadow-sm ring-1 ring-slate-800 bg-[#0F172A]">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base font-medium text-slate-200">Cotistas</CardTitle>
+                                <div className="text-right">
+                                    <div className="text-emerald-500 font-bold text-sm">Atual</div>
+                                    <div className="text-slate-200 font-semibold">{lastQuota?.nr_cotst?.toLocaleString('pt-BR') || '-'}</div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-500 uppercase">{fund.denom_social}</p>
+                        </CardHeader>
+                        <CardContent className="h-[250px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={history}>
+                                    <XAxis
+                                        dataKey="dt_comptc"
+                                        hide
+                                    />
+                                    <YAxis
+                                        domain={['auto', 'auto']}
+                                        hide
+                                    />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', color: '#fff' }}
+                                        labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                                        formatter={(value: number) => [value.toLocaleString('pt-BR'), 'Cotistas']}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="nr_cotst"
+                                        stroke="#10B981"
+                                        strokeWidth={2}
+                                        dot={false}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+
+                    {/* Drawdown */}
+                    <Card className="border-0 shadow-sm ring-1 ring-slate-800 bg-[#0F172A]">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base font-medium text-slate-200">Drawdown</CardTitle>
+                                <div className="text-right">
+                                    <div className="text-emerald-500 font-bold text-sm">Atual</div>
+                                    <div className="text-slate-200 font-semibold">{(() => {
+                                        if (!history || history.length === 0) return '-';
+                                        const sorted = [...history].sort((a, b) => new Date(a.dt_comptc).getTime() - new Date(b.dt_comptc).getTime());
+                                        let peak = -Infinity;
+                                        let currentDD = 0;
+                                        for (const h of sorted) {
+                                            if (h.vl_quota > peak) peak = h.vl_quota;
+                                            currentDD = (h.vl_quota / peak) - 1;
+                                        }
+                                        return formatPercent(currentDD * 100);
+                                    })()}</div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-500 uppercase">{fund.denom_social}</p>
+                        </CardHeader>
+                        <CardContent className="h-[250px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={(() => {
+                                    if (!history) return [];
+                                    const sorted = [...history].sort((a, b) => new Date(a.dt_comptc).getTime() - new Date(b.dt_comptc).getTime());
+                                    let peak = -Infinity;
+                                    return sorted.map(h => {
+                                        if (h.vl_quota > peak) peak = h.vl_quota;
+                                        const dd = (h.vl_quota / peak) - 1;
+                                        return { ...h, drawdown: dd * 100 };
+                                    });
+                                })()}>
+                                    <defs>
+                                        <linearGradient id="colorDrawdown" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#EF4444" stopOpacity={0.2} />
+                                            <stop offset="95%" stopColor="#EF4444" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="dt_comptc" hide />
+                                    <YAxis hide />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', color: '#fff' }}
+                                        labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                                        formatter={(value: number) => [`${value.toFixed(2)}%`, 'Drawdown']}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="drawdown"
+                                        stroke="#EF4444"
+                                        fill="url(#colorDrawdown)"
+                                        strokeWidth={2}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+
+                    {/* Patrimônio Líquido */}
+                    <Card className="border-0 shadow-sm ring-1 ring-slate-800 bg-[#0F172A]">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base font-medium text-slate-200">Patrimônio</CardTitle>
+                                <div className="text-right">
+                                    <div className="text-emerald-500 font-bold text-sm">Atual</div>
+                                    <div className="text-slate-200 font-semibold">{lastQuota?.vl_patrim_liq ? formatCurrency(lastQuota.vl_patrim_liq) : '-'}</div>
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-500 uppercase">{fund.denom_social}</p>
+                        </CardHeader>
+                        <CardContent className="h-[250px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={history}>
+                                    <defs>
+                                        <linearGradient id="colorPatrimonio" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.4} />
+                                            <stop offset="95%" stopColor="#10B981" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <XAxis dataKey="dt_comptc" hide />
+                                    <YAxis hide />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', color: '#fff' }}
+                                        labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                                        formatter={(value: number) => [formatCurrency(value), 'Patrimônio']}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="vl_patrim_liq"
+                                        stroke="#10B981"
+                                        fill="url(#colorPatrimonio)"
+                                        strokeWidth={2}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+
+                    {/* Volatilidade */}
+                    <Card className="border-0 shadow-sm ring-1 ring-slate-800 bg-[#0F172A]">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base font-medium text-slate-200">Volatilidade (21d)</CardTitle>
+                                <div className="text-right">
+                                    <div className="text-emerald-500 font-bold text-sm">Atual</div>
+                                    <div className="text-slate-200 font-semibold">{metrics?.volatilidade_12m !== undefined ? formatPercent(metrics.volatilidade_12m) : '-'}</div>
+                                    {/* Note: Showing 12m vol here as summary, but chart is 21d rolling if implemented correctly, or maybe just 12m logic? 
+                                        User asked for 'Volatilidade' chart. Usually rolling. 
+                                        Code below calculates rolling 21d vol. 
+                                        The summary 'Atual' could be the last point of rolling vol.
+                                    */}
+                                </div>
+                            </div>
+                            <p className="text-xs text-slate-500 uppercase">{fund.denom_social}</p>
+                        </CardHeader>
+                        <CardContent className="h-[250px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={(() => {
+                                    if (!history || history.length < 22) return [];
+                                    const sorted = [...history].sort((a, b) => new Date(a.dt_comptc).getTime() - new Date(b.dt_comptc).getTime());
+
+                                    // Calculate returns
+                                    const rets = [];
+                                    for (let i = 1; i < sorted.length; i++) {
+                                        const r = (sorted[i].vl_quota / sorted[i - 1].vl_quota) - 1;
+                                        rets.push(r);
+                                    }
+
+                                    // Rolling Vol 21d
+                                    const window = 21;
+                                    const volData = [];
+                                    for (let i = window; i < sorted.length; i++) {
+                                        const slice = rets.slice(i - window, i);
+                                        // std dev
+                                        const mean = slice.reduce((a, b) => a + b, 0) / window;
+                                        const variance = slice.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / window;
+                                        const std = Math.sqrt(variance);
+                                        const volAnn = std * Math.sqrt(252);
+
+                                        volData.push({
+                                            dt_comptc: sorted[i].dt_comptc,
+                                            volatility: volAnn * 100
+                                        });
+                                    }
+                                    return volData;
+                                })()}>
+                                    <XAxis dataKey="dt_comptc" hide />
+                                    <YAxis hide />
+                                    <Tooltip
+                                        contentStyle={{ backgroundColor: '#1e293b', borderRadius: '8px', border: '1px solid #334155', color: '#fff' }}
+                                        labelFormatter={(label) => new Date(label).toLocaleDateString('pt-BR')}
+                                        formatter={(value: number) => [`${value.toFixed(2)}%`, 'Volatilidade']}
+                                    />
+                                    <Line
+                                        type="monotone"
+                                        dataKey="volatility"
+                                        stroke="#10B981"
+                                        strokeWidth={2}
+                                        dot={false}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </div>
+
+
+
             </div>
         </div>
     );

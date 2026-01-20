@@ -106,7 +106,7 @@ class DataService:
         
         # Use ILIKE to be safer, though CNPJ should be exact. Adding LIMIT 1.
         sql = f"""
-            SELECT * FROM cvm.cadastro WHERE cnpj_fundo = '{clean_cnpj}' LIMIT 1
+            SELECT * FROM cvm.cadastro WHERE cnpj_fundo = '{clean_cnpj}' AND dt_fim IS NULL LIMIT 1
         """
         df = self.db.read_sql(sql)
         
