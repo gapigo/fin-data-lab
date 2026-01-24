@@ -5,6 +5,7 @@ import { ContextTabs } from '@/components/dashboard/ContextTabs';
 import { FundSelector } from '@/components/dashboard/FundSelector';
 import FundDetails from './FundDetails';
 import FundLab from './FundLab';
+import FlagshipPeer from './FlagshipPeer';
 import {
   HomeView,
   PerformanceView,
@@ -44,6 +45,11 @@ const viewConfigs: Record<string, ViewConfig> = {
   'fund-lab': {
     id: 'fund-lab',
     title: 'Fund Lab',
+    tabs: []
+  },
+  'flagship-peer': {
+    id: 'flagship-peer',
+    title: 'Flagship Peer',
     tabs: []
   },
   performance: {
@@ -175,6 +181,8 @@ const Index = () => {
         );
       case 'fund-lab':
         return <FundLab />;
+      case 'flagship-peer':
+        return <FlagshipPeer />;
       case 'performance':
         return <PerformanceView />;
       case 'realtime':
@@ -217,7 +225,7 @@ const Index = () => {
         />
 
         <main className="flex-1 min-w-0">
-          {activeView !== 'view-fund' && activeView !== 'fund-lab' && (
+          {activeView !== 'view-fund' && activeView !== 'fund-lab' && activeView !== 'flagship-peer' && (
             <div className="border-b border-border bg-card/30">
               <div className="px-6 pt-6 pb-0">
                 <h1 className="text-2xl font-bold mb-1">
