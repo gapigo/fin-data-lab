@@ -4,6 +4,7 @@ import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
 import { ContextTabs } from '@/components/dashboard/ContextTabs';
 import { FundSelector } from '@/components/dashboard/FundSelector';
 import FundDetails from './FundDetails';
+import FundLab from './FundLab';
 import {
   HomeView,
   PerformanceView,
@@ -38,6 +39,11 @@ const viewConfigs: Record<string, ViewConfig> = {
   'view-fund': {
     id: 'view-fund',
     title: 'Análise de Fundos',
+    tabs: []
+  },
+  'fund-lab': {
+    id: 'fund-lab',
+    title: 'Fund Lab',
     tabs: []
   },
   performance: {
@@ -167,6 +173,8 @@ const Index = () => {
             <FundDetails cnpj={selectedFundCnpj} />
           </div>
         );
+      case 'fund-lab':
+        return <FundLab />;
       case 'performance':
         return <PerformanceView />;
       case 'realtime':
@@ -209,7 +217,7 @@ const Index = () => {
         />
 
         <main className="flex-1 min-w-0">
-          {activeView !== 'view-fund' && (
+          {activeView !== 'view-fund' && activeView !== 'fund-lab' && (
             <div className="border-b border-border bg-card/30">
               <div className="px-6 pt-6 pb-0">
                 <h1 className="text-2xl font-bold mb-1">

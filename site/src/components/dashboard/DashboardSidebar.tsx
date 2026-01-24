@@ -12,6 +12,7 @@ import {
   LucideProps,
   Layers,
   Zap,
+  FlaskConical,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -35,6 +36,7 @@ const navGroups: NavGroup[] = [
     color: 'nav-group-1',
     items: [
       { id: 'view-fund', label: 'Visualizar fundo', icon: Target },
+      { id: 'fund-lab', label: 'Lab', icon: FlaskConical },
     ]
   },
   {
