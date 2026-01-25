@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
     Building2,
     BarChart3,
@@ -138,11 +139,23 @@ const CHAT_MESSAGES_INITIAL = [
 // --- COMPONENTS ---
 
 const FundLab = () => {
+    const location = useLocation();
     const [activeTab, setActiveTab] = useState("overview");
     const [chatInput, setChatInput] = useState("");
     const [messages, setMessages] = useState(CHAT_MESSAGES_INITIAL);
     const [fundDesc, setFundDesc] = useState(FUND_DATA.description);
     const [isEditOpen, setIsEditOpen] = useState(false);
+    const [selectedCnpj, setSelectedCnpj] = useState<string | null>(null);
+
+    // Receive CNPJ from navigation state (from Flagship Peer)
+    useEffect(() => {
+        const state = location.state as { cnpj?: string } | null;
+        if (state?.cnpj) {
+            setSelectedCnpj(state.cnpj);
+            console.log('Lab opened with CNPJ:', state.cnpj);
+            // TODO: Fetch fund data from API using this CNPJ
+        }
+    }, [location.state]);
 
     const handleSendMessage = () => {
         if (!chatInput.trim()) return;
@@ -545,8 +558,8 @@ const FundLab = () => {
                                         {messages.map((msg) => (
                                             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[80%] rounded-lg p-3 text-sm ${msg.sender === 'user'
-                                                        ? 'bg-indigo-600 text-white rounded-br-none'
-                                                        : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
+                                                    ? 'bg-indigo-600 text-white rounded-br-none'
+                                                    : 'bg-slate-800 text-slate-200 rounded-bl-none border border-slate-700'
                                                     }`}>
                                                     <p>{msg.text}</p>
                                                 </div>
