@@ -1,6 +1,7 @@
 import { Activity, Bell, Search, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CacheStatusIndicator } from '@/components/cache/CacheStatusIndicator';
 
 interface DashboardHeaderProps {
   onToggleSidebar: () => void;
@@ -21,15 +22,13 @@ export const DashboardHeader = ({
         >
           <div className="w-5 h-4 flex flex-col justify-between">
             <span
-              className={`block h-0.5 bg-foreground transition-all duration-300 ${
-                sidebarCollapsed ? 'w-5' : 'w-4'
-              }`}
+              className={`block h-0.5 bg-foreground transition-all duration-300 ${sidebarCollapsed ? 'w-5' : 'w-4'
+                }`}
             />
             <span className="block h-0.5 w-5 bg-foreground" />
             <span
-              className={`block h-0.5 bg-foreground transition-all duration-300 ${
-                sidebarCollapsed ? 'w-5' : 'w-3'
-              }`}
+              className={`block h-0.5 bg-foreground transition-all duration-300 ${sidebarCollapsed ? 'w-5' : 'w-3'
+                }`}
             />
           </div>
         </button>
@@ -52,7 +51,12 @@ export const DashboardHeader = ({
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
+        {/* Indicador de Cache */}
+        <div className="hidden lg:block">
+          <CacheStatusIndicator compact />
+        </div>
+
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="w-5 h-5" />
           <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full" />
