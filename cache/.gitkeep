@@ -1,0 +1,2 @@
+# Cache directory for @tmp decorator
+# .pkl files are generated automatically and should be ignored by git

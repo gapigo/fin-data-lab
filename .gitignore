@@ -229,3 +229,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cache directory for @tmp decorator
+cache/*.pkl
