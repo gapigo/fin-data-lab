@@ -83,3 +83,25 @@ class PostgresConnector:
             conn.execute(text(insert_sql))
             
             conn.execute(text(f'DROP TABLE {s_quoted}."{temp_name}"'))
+
+    def overwrite_table(self, df: pd.DataFrame, table_name: str):
+        """
+        Força a substituição da tabela:
+        1. Dropa a tabela existente com CASCADE (para lidar com Views).
+        2. Salva o DataFrame exatamente como está (sem __id extra).
+        """
+        s_quoted, t_quoted, s_raw, t_raw = self._split_table(table_name)
+        
+        with self.engine.begin() as conn:
+            # 1. Garante Schema
+            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {s_quoted};"))
+            
+            # 2. Drop Manual com Cascade (Resolve o problema de views presas)
+            conn.execute(text(f"DROP TABLE IF EXISTS {s_quoted}.{t_quoted} CASCADE;"))
+            
+            # 3. Salva o DataFrame
+            # Usamos 'append' porque acabamos de dropar a tabela manualmente.
+            # O Pandas perceberá que a tabela não existe e criará o CREATE TABLE automaticamente.
+            df.to_sql(t_raw, conn, schema=s_raw, if_exists='append', index=False)
+            
+            print(f"Tabela {table_name} sobrescrita com sucesso (Backup destruído).")
