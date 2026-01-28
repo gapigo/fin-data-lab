@@ -17,6 +17,7 @@ import {
   Home,
   Database,
   Settings,
+  Wallet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +53,14 @@ const mainNavGroups: NavGroup[] = [
       { id: 'fund-summary', label: 'Resumo Fundo', icon: LineChart },
       { id: 'fund-lab', label: 'Lab', icon: FlaskConical },
       { id: 'flagship-peer', label: 'Flagship Peer', icon: Users2 },
+    ]
+  },
+  {
+    id: 'allocators',
+    label: 'Alocadores',
+    color: 'nav-group-3',
+    items: [
+      { id: 'allocators', label: 'Alocadores', icon: Wallet },
     ]
   },
   {
