@@ -12,10 +12,15 @@ import pandas as pd
 import numpy as np
 from typing import Optional, Dict, Any, List
 
-# Import cached model functions
-from data_models.carteira import get_carteira_df, get_carteira_filters
-from data_models.fluxo_veiculos import get_fluxo_veiculos_df, get_fluxo_latest
-from data_models.metrics import get_metrics_df, get_metrics_latest, get_performance_status
+
+try:
+    from ..data_models.carteira import get_carteira_df, get_carteira_filters
+    from ..data_models.fluxo_veiculos import get_fluxo_veiculos_df, get_fluxo_latest
+    from ..data_models.metrics import get_metrics_df, get_metrics_latest, get_performance_status
+except ImportError:
+    from data_models.carteira import get_carteira_df, get_carteira_filters
+    from data_models.fluxo_veiculos import get_fluxo_veiculos_df, get_fluxo_latest
+    from data_models.metrics import get_metrics_df, get_metrics_latest, get_performance_status
 
 
 class AllocatorsService:

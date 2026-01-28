@@ -8,9 +8,20 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-from service import DataService
-from services.allocators_service import allocators_service
-from cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
+
+try:
+    from .service import DataService
+    from .services.allocators_service import allocators_service
+    from common.cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
+except ImportError:
+    # Fallback for running as script from api directory
+    # We ensure path is correct for common
+    import sys
+    import os
+    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    from service import DataService
+    from services.allocators_service import allocators_service
+    from common.cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
 
 app = FastAPI(title="Fin Data Lab API", description="API for CVM Fund Data")
 
@@ -397,4 +408,4 @@ def get_allocator_allocation(
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

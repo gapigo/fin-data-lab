@@ -34,11 +34,11 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
-from cache import tmp
+from common.cache import temp
 from common.postgresql import PostgresConnector
 
 
-@tmp(ttl=86400)  # Cache for 1 day
+@temp(ttl=86400)  # Cache for 1 day
 def get_metrics_df() -> pd.DataFrame:
     """
     Loads the entire cvm.metrics table into a DataFrame.
@@ -81,7 +81,7 @@ def get_metrics_df() -> pd.DataFrame:
         ])
 
 
-@tmp(ttl=86400)
+@temp(ttl=86400)
 def get_metrics_latest() -> pd.DataFrame:
     """
     Returns only the most recent date's metrics for each fund and window.

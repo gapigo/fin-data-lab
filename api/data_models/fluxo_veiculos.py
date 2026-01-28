@@ -32,11 +32,11 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
-from cache import tmp
+from common.cache import temp
 from common.postgresql import PostgresConnector
 
 
-@tmp(ttl=86400)  # Cache for 1 day
+@temp(ttl=86400)  # Cache for 1 day
 def get_fluxo_veiculos_df() -> pd.DataFrame:
     """
     Loads the entire alocadores.fluxo_veiculos table into a DataFrame.
@@ -71,7 +71,7 @@ def get_fluxo_veiculos_df() -> pd.DataFrame:
     return df
 
 
-@tmp(ttl=86400)
+@temp(ttl=86400)
 def get_fluxo_latest() -> pd.DataFrame:
     """
     Returns only the most recent date's flow data.
@@ -94,7 +94,7 @@ def get_fluxo_latest() -> pd.DataFrame:
     return df
 
 
-@tmp(ttl=86400)
+@temp(ttl=86400)
 def get_fluxo_aggregated_by_peer() -> pd.DataFrame:
     """
     Returns flow data aggregated by (dt_comptc, peer_ativo).

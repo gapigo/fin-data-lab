@@ -1,11 +1,10 @@
 """
 Sistema robusto de cache para a API Fin Data Lab.
 
-Inclui:
-- SimpleCache: Cache em memória com TTL
-- @tmp decorator: Cache em arquivo .pkl
-- RequestDeduplicator: Controle de requisições em andamento para evitar duplicação
-- Funções utilitárias para gerenciamento de cache
+Includes:
+- SimpleCache: In-memory cache with TTL.
+- @temp decorator: File-based cache (.pkl) for persisting function results.
+- RequestDeduplicator: Prevents duplicate concurrent requests.
 """
 import time
 import threading
@@ -86,7 +85,7 @@ cache = SimpleCache(default_ttl=86400)
 
 
 # ============================================================================
-# REQUEST DEDUPLICATOR - Evita requisições duplicadas
+# REQUEST DEDUPLICATOR
 # ============================================================================
 
 @dataclass
@@ -102,14 +101,6 @@ class PendingRequest:
 class RequestDeduplicator:
     """
     Controla requisições em andamento para evitar duplicação.
-    
-    Quando uma requisição chega e já existe uma igual em andamento:
-    - Não inicia uma nova requisição
-    - Aguarda o resultado da requisição existente
-    - Retorna o mesmo resultado para ambas
-    
-    Isso é crucial para APIs lentas com múltiplos clientes fazendo
-    as mesmas requisições simultaneamente.
     """
     
     def __init__(self, timeout: int = 300):  # 5 min timeout
@@ -131,11 +122,6 @@ class RequestDeduplicator:
     def get_or_create(self, key: str, endpoint: str, params_str: str) -> Tuple[bool, Optional[Future]]:
         """
         Verifica se já existe uma requisição em andamento para esta chave.
-        
-        Returns:
-            (is_new, future): 
-            - Se is_new=True, é uma nova requisição e future é None
-            - Se is_new=False, já existe uma requisição e future é o Future dela
         """
         with self._lock:
             # Limpar requisições expiradas
@@ -202,7 +188,7 @@ request_dedup = RequestDeduplicator(timeout=300)
 
 
 # ============================================================================
-# FILE-BASED CACHE DECORATOR (@tmp)
+# FILE-BASED CACHE DECORATOR (@temp)
 # ============================================================================
 
 # Define cache directory at repository root
@@ -212,6 +198,8 @@ CACHE_DIR = Path(__file__).parent.parent / "cache"
 def _get_params_hash(args: tuple, kwargs: dict) -> str:
     """Generate a hash from function parameters."""
     try:
+        # Convert args/kwargs to string representation that is stable
+        # sort keys of kwargs to ensure stability
         params_repr = str((args, sorted(kwargs.items())))
         return hashlib.md5(params_repr.encode()).hexdigest()[:16]
     except Exception:
@@ -234,6 +222,7 @@ def _parse_cache_filename(filename: str) -> Optional[Tuple[str, str, int]]:
         return None
     
     name = filename[:-4]
+    # Split from right to handle function names with underscores
     parts = name.rsplit('_', 2)
     
     if len(parts) != 3:
@@ -255,6 +244,7 @@ def _cleanup_expired_cache(func_name: str, ttl: int):
     
     current_time = time.time()
     
+    # Only glob files for this function to avoid iterating everything
     for cache_file in CACHE_DIR.glob(f"{func_name}_*.pkl"):
         parsed = _parse_cache_filename(cache_file.name)
         if parsed:
@@ -273,10 +263,12 @@ def _find_valid_cache(func_name: str, params_hash: str, ttl: int) -> Optional[Pa
     
     current_time = time.time()
     
+    # Glob specifically for function and hash
     for cache_file in CACHE_DIR.glob(f"{func_name}_{params_hash}_*.pkl"):
         parsed = _parse_cache_filename(cache_file.name)
         if parsed:
             _, file_params_hash, unix_time = parsed
+            # Double check hash match just in case
             if file_params_hash == params_hash:
                 if current_time <= unix_time + ttl:
                     return cache_file
@@ -296,7 +288,7 @@ def _remove_old_cache_for_params(func_name: str, params_hash: str):
             pass
 
 
-def tmp(ttl: int = 86400):
+def temp(ttl: int = 86400):
     """
     File-based cache decorator that saves function results as pickle files.
     
@@ -313,6 +305,7 @@ def tmp(ttl: int = 86400):
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            # Ensure cache dir exists
             _ensure_cache_dir()
             
             func_name = func.__name__
@@ -325,14 +318,15 @@ def tmp(ttl: int = 86400):
                 try:
                     with open(cached_file, 'rb') as f:
                         result = pickle.load(f)
+                    print(f"[CACHE] Hit for {func_name} ({params_hash})")
                     return result
-                except Exception:
-                    pass
+                except Exception as e:
+                    print(f"[CACHE] Error loading cache for {func_name}: {e}")
             
             # Execute function
             result = func(*args, **kwargs)
             
-            # Remove old cache files for same params
+            # Remove old cache files for same params (to avoid accumulation)
             _remove_old_cache_for_params(func_name, params_hash)
             
             # Save new cache file
@@ -343,10 +337,10 @@ def tmp(ttl: int = 86400):
             try:
                 with open(cache_path, 'wb') as f:
                     pickle.dump(result, f)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[CACHE] Error saving cache for {func_name}: {e}")
             
-            # Cleanup expired cache files
+            # Cleanup expired cache files for this function (maintenance)
             try:
                 _cleanup_expired_cache(func_name, ttl)
             except Exception:
@@ -367,6 +361,10 @@ def tmp(ttl: int = 86400):
         return wrapper
     
     return decorator
+
+# Alias tmp to temp for backward compatibility if needed, 
+# but user specifically asked for 'temp'.
+tmp = temp
 
 
 # ============================================================================
@@ -413,26 +411,29 @@ def get_cache_stats() -> Dict[str, Any]:
     current_time = time.time()
     
     for cache_file in CACHE_DIR.glob("*.pkl"):
-        file_stat = cache_file.stat()
-        stats["total_files"] += 1
-        stats["total_size_mb"] += file_stat.st_size / (1024 * 1024)
-        
-        parsed = _parse_cache_filename(cache_file.name)
-        if parsed:
-            func_name, params_hash, unix_time = parsed
-            if func_name not in stats["functions"]:
-                stats["functions"][func_name] = 0
-            stats["functions"][func_name] += 1
+        try:
+            file_stat = cache_file.stat()
+            stats["total_files"] += 1
+            stats["total_size_mb"] += file_stat.st_size / (1024 * 1024)
             
-            # Add file info
-            stats["files"].append({
-                "filename": cache_file.name,
-                "function": func_name,
-                "params_hash": params_hash,
-                "created_at": datetime.fromtimestamp(unix_time).isoformat(),
-                "age_seconds": int(current_time - unix_time),
-                "size_bytes": file_stat.st_size
-            })
+            parsed = _parse_cache_filename(cache_file.name)
+            if parsed:
+                func_name, params_hash, unix_time = parsed
+                if func_name not in stats["functions"]:
+                    stats["functions"][func_name] = 0
+                stats["functions"][func_name] += 1
+                
+                # Add file info
+                stats["files"].append({
+                    "filename": cache_file.name,
+                    "function": func_name,
+                    "params_hash": params_hash,
+                    "created_at": datetime.fromtimestamp(unix_time).isoformat(),
+                    "age_seconds": int(current_time - unix_time),
+                    "size_bytes": file_stat.st_size
+                })
+        except Exception:
+            pass # File might be deleted during iteration
     
     stats["total_size_mb"] = round(stats["total_size_mb"], 2)
     return stats

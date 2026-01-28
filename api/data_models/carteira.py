@@ -32,11 +32,11 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pandas as pd
-from cache import tmp
+from common.cache import temp
 from common.postgresql import PostgresConnector
 
 
-@tmp(ttl=86400)  # Cache for 1 day
+@temp(ttl=86400)  # Cache for 1 day
 def get_carteira_df() -> pd.DataFrame:
     """
     Loads the entire cvm.carteira view into a DataFrame.
@@ -71,7 +71,7 @@ def get_carteira_df() -> pd.DataFrame:
     return df
 
 
-@tmp(ttl=86400)  # Cache for 1 day
+@temp(ttl=86400)  # Cache for 1 day
 def get_carteira_aggregated() -> pd.DataFrame:
     """
     Returns aggregated carteira data by (dt_comptc, cliente, cliente_segmentado, peer).
@@ -103,7 +103,7 @@ def get_carteira_aggregated() -> pd.DataFrame:
     return df
 
 
-@tmp(ttl=86400)
+@temp(ttl=86400)
 def get_carteira_filters() -> dict:
     """
     Returns available filter values for the carteira dashboard.

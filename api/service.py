@@ -1,26 +1,43 @@
+
 import sys
 import os
 from typing import List, Optional, Dict, Any
 import pandas as pd
 from datetime import date
+import numpy as np
 
 # Add project root to path to import common
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from common.postgresql import PostgresConnector
-from models import (
-    FundSearchResponse, FundDetail, QuotaData, FundMetrics, FundComposition,
-    AssetPosition, PortfolioBlock, PortfolioDetailed, FundRelationship, 
-    FundStructure, TopAsset
-)
-from cache import cache, tmp
-import numpy as np
+
+try:
+    from .models import (
+        FundSearchResponse, FundDetail, QuotaData, FundMetrics, FundComposition,
+        AssetPosition, PortfolioBlock, PortfolioDetailed, FundRelationship, 
+        FundStructure, TopAsset
+    )
+    from common.cache import cache, temp
+    from .data_models import fund_details, fund_history, portfolio, peer_groups
+except ImportError:
+    from models import (
+        FundSearchResponse, FundDetail, QuotaData, FundMetrics, FundComposition,
+        AssetPosition, PortfolioBlock, PortfolioDetailed, FundRelationship, 
+        FundStructure, TopAsset
+    )
+    from common.cache import cache, temp
+    from data_models import fund_details, fund_history, portfolio, peer_groups
 
 class DataService:
     def __init__(self):
-        self.db = PostgresConnector()
+        # DB access is now handled by models, but we might keep db for edge cases if needed.
+        # Ideally, we don't need self.db anymore here, but let's keep it if we missed anything.
+        pass
+
+    def __repr__(self):
+        return "DataServiceSingleton"
 
     def _normalize_cnpj(self, cnpj: str) -> str:
+        """Helper to format CNPJ."""
         import re
         raw_cnpj = re.sub(r'\D', '', cnpj)
         target_cnpj = cnpj.strip()
@@ -29,31 +46,16 @@ class DataService:
         return target_cnpj.replace("'", "''")
 
     def _val(self, v):
-        """Retorna None se o valor for NaN/NaT"""
+        """Returns None if value is NaN/NaT"""
         return v if pd.notnull(v) else None
 
     # ========================================================================
     # FUND SEARCH & DETAIL
     # ========================================================================
     
+    @temp()
     def search_funds(self, query: str = None, limit: int = 50) -> List[FundSearchResponse]:
-        cache_key = f"search_funds:{query}:{limit}"
-        cached = cache.get(cache_key)
-        if cached:
-            return cached
-
-        sql = """
-            SELECT cnpj_fundo, denom_social, gestor, classe, sit, dt_ini
-            FROM cvm.cadastro
-            WHERE sit = 'EM FUNCIONAMENTO NORMAL'
-        """
-        if query:
-            clean_query = query.replace("'", "''")
-            sql += f" AND (denom_social ILIKE '%%{clean_query}%%' OR cnpj_fundo ILIKE '%%{clean_query}%%')"
-        
-        sql += f" ORDER BY dt_ini DESC LIMIT {limit}"
-
-        df = self.db.read_sql(sql)
+        df = fund_details.search_funds_data(query, limit)
         
         results = []
         for _, row in df.iterrows():
@@ -66,36 +68,18 @@ class DataService:
                 dt_ini=self._val(row['dt_ini'])
             ))
             
-        cache.set(cache_key, results, ttl=60)
         return results
 
     def suggest_funds(self, query: str) -> List[dict]:
-        clean_query = query.replace("'", "''").upper()
-        sql = f"""
-            SELECT DISTINCT denom_social, cnpj_fundo 
-            FROM cvm.cadastro 
-            WHERE dt_fim IS NULL 
-            AND denom_social ILIKE '%%{clean_query}%%' 
-            LIMIT 10
-        """
-        df = self.db.read_sql(sql)
+        df = fund_details.suggest_funds_data(query)
         if df.empty:
             return []
-        
         return df[['denom_social', 'cnpj_fundo']].to_dict('records')
 
+    @temp()
     def get_fund_detail(self, cnpj: str) -> Optional[FundDetail]:
-        cache_key = f"fund_detail:{cnpj}"
-        cached = cache.get(cache_key)
-        if cached:
-            return cached
-
         clean_cnpj = self._normalize_cnpj(cnpj)
-        
-        sql = f"""
-            SELECT * FROM cvm.cadastro WHERE cnpj_fundo = '{clean_cnpj}' AND dt_fim IS NULL LIMIT 1
-        """
-        df = self.db.read_sql(sql)
+        df = fund_details.get_fund_detail_data(clean_cnpj)
         
         if df.empty:
             return None
@@ -122,7 +106,6 @@ class DataService:
                 fundo_exclusivo=self._val(row.get('fundo_exclusivo')),
                 fundo_cotas=self._val(row.get('fundo_cotas')),
             )
-            cache.set(cache_key, detail, ttl=3600)
             return detail
         except Exception as e:
             print(f"Error instantiating FundDetail: {e}")
@@ -132,26 +115,10 @@ class DataService:
     # FUND HISTORY (COTAS)
     # ========================================================================
 
+    @temp()
     def get_fund_history(self, cnpj: str, start_date: date = None) -> List[QuotaData]:
-        s_date_str = start_date.isoformat() if start_date else "all"
-        cache_key = f"fund_history:{cnpj}:{s_date_str}"
-        cached = cache.get(cache_key)
-        if cached:
-            return cached
-
         clean_cnpj = self._normalize_cnpj(cnpj)
-        
-        sql = f"""
-            SELECT dt_comptc, vl_quota, vl_patrim_liq, vl_total, captc_dia, resg_dia, nr_cotst
-            FROM cvm.cotas
-            WHERE cnpj_fundo = '{clean_cnpj}'
-        """
-        if start_date:
-            sql += f" AND dt_comptc >= '{start_date}'"
-            
-        sql += " ORDER BY dt_comptc ASC"
-        
-        df = self.db.read_sql(sql)
+        df = fund_history.get_fund_history_raw(clean_cnpj, start_date)
         
         if df.empty:
             return []
@@ -168,18 +135,18 @@ class DataService:
                 nr_cotst=self._val(row.get('nr_cotst'))
             ))
             
-        cache.set(cache_key, history, ttl=3600)
         return history
 
     # ========================================================================
     # FUND METRICS (RENTABILIDADE)
     # ========================================================================
 
+    @temp()
     def get_fund_metrics(self, cnpj: str) -> Optional[dict]:
         clean_cnpj = self._normalize_cnpj(cnpj)
         
-        sql = f"SELECT dt_comptc, vl_quota FROM cvm.cotas WHERE cnpj_fundo = '{clean_cnpj}' ORDER BY dt_comptc ASC"
-        df = self.db.read_sql(sql)
+        # Get raw data from model
+        df = fund_history.get_fund_metrics_raw(clean_cnpj)
         
         if df.empty:
             return None
@@ -256,106 +223,38 @@ class DataService:
     # FUND COMPOSITION (RESUMO)
     # ========================================================================
 
+    @temp()
     def get_fund_composition(self, cnpj: str) -> Optional[dict]:
         clean_cnpj = self._normalize_cnpj(cnpj)
         
-        sql_date = f"SELECT MAX(dt_comptc) as max_date FROM cvm.cda_fi_pl WHERE cnpj_fundo = '{clean_cnpj}'"
-        df_date = self.db.read_sql(sql_date)
+        # Check date
+        df_date = portfolio.get_latest_composition_date(clean_cnpj)
         if df_date.empty or pd.isnull(df_date.iloc[0]['max_date']):
             return {"items": [], "date": None}
              
         max_date = df_date.iloc[0]['max_date']
+        date_str = str(max_date)
         
-        # Agregação por tipo de aplicação de todos os blocos
         composition = {}
         
-        # BLC 1 - Títulos Públicos
-        sql = f"""
-            SELECT 'Títulos Públicos' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_1
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Títulos Públicos'] = float(df['valor'].iloc[0])
+        # Block mapping: name -> block_num
+        blocks = {
+            'Títulos Públicos': 1,
+            'Cotas de Fundos': 2,
+            'Operações de Swap': 3,
+            'Ações e Derivativos': 4,
+            'Crédito Privado': 5,
+            'Outros Créditos': 6,
+            'Investimentos no Exterior': 7,
+            'Demais Ativos': 8
+        }
         
-        # BLC 2 - Cotas de Fundos
-        sql = f"""
-            SELECT 'Cotas de Fundos' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_2
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Cotas de Fundos'] = float(df['valor'].iloc[0])
-        
-        # BLC 3 - Swaps
-        sql = f"""
-            SELECT 'Operações de Swap' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_3
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Operações de Swap'] = float(df['valor'].iloc[0])
-        
-        # BLC 4 - Ações/Derivativos
-        sql = f"""
-            SELECT 'Ações e Derivativos' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_4
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Ações e Derivativos'] = float(df['valor'].iloc[0])
-        
-        # BLC 5 - Debêntures/Crédito Privado
-        sql = f"""
-            SELECT 'Crédito Privado' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_5
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Crédito Privado'] = float(df['valor'].iloc[0])
-        
-        # BLC 6 - Outros Créditos
-        sql = f"""
-            SELECT 'Outros Créditos' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_6
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Outros Créditos'] = float(df['valor'].iloc[0])
-        
-        # BLC 7 - Exterior
-        sql = f"""
-            SELECT 'Investimentos no Exterior' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_7
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Investimentos no Exterior'] = float(df['valor'].iloc[0])
-        
-        # BLC 8 - Demais Ativos
-        sql = f"""
-            SELECT 'Demais Ativos' as tp_aplic, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_8
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            HAVING SUM(vl_merc_pos_final) > 0
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty and df['valor'].iloc[0]:
-            composition['Demais Ativos'] = float(df['valor'].iloc[0])
+        for name, num in blocks.items():
+            df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, num)
+            if not df.empty:
+                val = df['vl_merc_pos_final'].sum()
+                if val > 0:
+                    composition[name] = float(val)
 
         total = sum(composition.values()) or 1
         items = []
@@ -368,49 +267,46 @@ class DataService:
             
         return {
             "items": items,
-            "date": str(max_date)
+            "date": date_str
         }
 
     # ========================================================================
     # PORTFOLIO DETAILED (CARTEIRA COMPLETA POR BLOCO)
     # ========================================================================
 
+    @temp()
     def get_portfolio_detailed(self, cnpj: str) -> Optional[dict]:
         """Retorna a carteira completa do fundo com todos os ativos por bloco"""
         clean_cnpj = self._normalize_cnpj(cnpj)
         
-        # 1. Buscar data mais recente e PL
-        sql = f"SELECT MAX(dt_comptc) as max_date, MAX(vl_patrim_liq) as pl FROM cvm.cda_fi_pl WHERE cnpj_fundo = '{clean_cnpj}'"
-        df_date = self.db.read_sql(sql)
+        df_date = portfolio.get_latest_composition_date(clean_cnpj)
         if df_date.empty or pd.isnull(df_date.iloc[0]['max_date']):
             return None
         
         max_date = df_date.iloc[0]['max_date']
+        date_str = str(max_date)
         pl_total = float(df_date.iloc[0]['pl'] or 1)
         
         blocos = []
         resumo = {}
         
-        # BLC 1 - Títulos Públicos
-        sql = f"""
-            SELECT tp_titpub as codigo, tp_ativo as nome, dt_venc,
-                   SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_1
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY tp_titpub, tp_ativo, dt_venc
-            ORDER BY valor DESC
-        """
-        df = self.db.read_sql(sql)
+        # --- BLC 1: Títulos Públicos ---
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 1)
         if not df.empty:
-            total_blc = df['valor'].sum()
+            # Aggregation logic specific to block types
+            df_g = df.groupby(['tp_titpub', 'tp_ativo', 'dt_venc'])['vl_merc_pos_final'].sum().reset_index()
+            df_g = df_g.sort_values('vl_merc_pos_final', ascending=False)
+            
             ativos = []
-            for _, row in df.iterrows():
+            for _, row in df_g.iterrows():
                 ativos.append({
-                    "nome": f"{row['codigo'] or ''} - {row['nome'] or 'Título'}".strip(' -'),
-                    "valor": float(row['valor']),
-                    "percentual": round((row['valor'] / pl_total) * 100, 2),
+                    "nome": f"{row['tp_titpub'] or ''} - {row['tp_ativo'] or 'Título'}".strip(' -'),
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
                     "dt_venc": str(row['dt_venc']) if pd.notnull(row['dt_venc']) else None
                 })
+            
+            total_blc = df_g['vl_merc_pos_final'].sum()
             blocos.append({
                 "tipo": "titulos_publicos",
                 "nome_display": "Títulos Públicos",
@@ -420,26 +316,22 @@ class DataService:
             })
             resumo["Títulos Públicos"] = round((total_blc / pl_total) * 100, 2)
         
-        # BLC 2 - Cotas de Fundos
-        sql = f"""
-            SELECT nm_fundo_cota as nome, cnpj_fundo_cota as cnpj,
-                   SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_2
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY nm_fundo_cota, cnpj_fundo_cota
-            ORDER BY valor DESC
-        """
-        df = self.db.read_sql(sql)
+        # --- BLC 2: Cotas de Fundos ---
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 2)
         if not df.empty:
-            total_blc = df['valor'].sum()
+            df_g = df.groupby(['nm_fundo_cota', 'cnpj_fundo_cota'])['vl_merc_pos_final'].sum().reset_index()
+            df_g = df_g.sort_values('vl_merc_pos_final', ascending=False)
+            
             ativos = []
-            for _, row in df.iterrows():
+            for _, row in df_g.iterrows():
                 ativos.append({
-                    "nome": row['nome'] or "Fundo",
-                    "valor": float(row['valor']),
-                    "percentual": round((row['valor'] / pl_total) * 100, 2),
-                    "cnpj_emissor": row['cnpj']
+                    "nome": row['nm_fundo_cota'] or "Fundo",
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
+                    "cnpj_emissor": row['cnpj_fundo_cota']
                 })
+            
+            total_blc = df_g['vl_merc_pos_final'].sum()
             blocos.append({
                 "tipo": "cotas_fundos",
                 "nome_display": "Cotas de Fundos",
@@ -448,27 +340,23 @@ class DataService:
                 "ativos": ativos
             })
             resumo["Cotas de Fundos"] = round((total_blc / pl_total) * 100, 2)
-        
-        # BLC 4 - Ações/Derivativos
-        sql = f"""
-            SELECT cd_ativo as codigo, ds_ativo as nome,
-                   SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_4
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY cd_ativo, ds_ativo
-            ORDER BY valor DESC
-        """
-        df = self.db.read_sql(sql)
+
+        # --- BLC 4: Ações/Derivativos ---
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 4)
         if not df.empty:
-            total_blc = df['valor'].sum()
+            df_g = df.groupby(['cd_ativo', 'ds_ativo'])['vl_merc_pos_final'].sum().reset_index()
+            df_g = df_g.sort_values('vl_merc_pos_final', ascending=False)
+            
             ativos = []
-            for _, row in df.iterrows():
+            for _, row in df_g.iterrows():
                 ativos.append({
-                    "nome": f"{row['codigo'] or ''} - {row['nome'] or 'Ativo'}".strip(' -'),
-                    "valor": float(row['valor']),
-                    "percentual": round((row['valor'] / pl_total) * 100, 2),
+                    "nome": f"{row['cd_ativo'] or ''} - {row['ds_ativo'] or 'Ativo'}".strip(' -'),
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
                     "tipo": "acao"
                 })
+            
+            total_blc = df_g['vl_merc_pos_final'].sum()
             blocos.append({
                 "tipo": "acoes_derivativos",
                 "nome_display": "Ações e Derivativos",
@@ -477,28 +365,24 @@ class DataService:
                 "ativos": ativos
             })
             resumo["Ações e Derivativos"] = round((total_blc / pl_total) * 100, 2)
-        
-        # BLC 5 - Crédito Privado (Debêntures)
-        sql = f"""
-            SELECT emissor as nome, cnpj_emissor, dt_venc,
-                   SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_5
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY emissor, cnpj_emissor, dt_venc
-            ORDER BY valor DESC
-        """
-        df = self.db.read_sql(sql)
+
+        # --- BLC 5: Crédito Privado ---
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 5)
         if not df.empty:
-            total_blc = df['valor'].sum()
+            df_g = df.groupby(['emissor', 'cnpj_emissor', 'dt_venc'])['vl_merc_pos_final'].sum().reset_index()
+            df_g = df_g.sort_values('vl_merc_pos_final', ascending=False)
+            
             ativos = []
-            for _, row in df.iterrows():
+            for _, row in df_g.iterrows():
                 ativos.append({
-                    "nome": row['nome'] or "Emissor",
-                    "valor": float(row['valor']),
-                    "percentual": round((row['valor'] / pl_total) * 100, 2),
+                    "nome": row['emissor'] or "Emissor",
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
                     "cnpj_emissor": row['cnpj_emissor'],
                     "dt_venc": str(row['dt_venc']) if pd.notnull(row['dt_venc']) else None
                 })
+            
+            total_blc = df_g['vl_merc_pos_final'].sum()
             blocos.append({
                 "tipo": "credito_privado",
                 "nome_display": "Crédito Privado",
@@ -507,27 +391,23 @@ class DataService:
                 "ativos": ativos
             })
             resumo["Crédito Privado"] = round((total_blc / pl_total) * 100, 2)
-        
-        # BLC 7 - Exterior
-        sql = f"""
-            SELECT ds_ativo_exterior as nome, pais,
-                   SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_7
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY ds_ativo_exterior, pais
-            ORDER BY valor DESC
-        """
-        df = self.db.read_sql(sql)
+
+        # --- BLC 7: Exterior ---
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 7)
         if not df.empty:
-            total_blc = df['valor'].sum()
+            df_g = df.groupby(['ds_ativo_exterior', 'pais'])['vl_merc_pos_final'].sum().reset_index()
+            df_g = df_g.sort_values('vl_merc_pos_final', ascending=False)
+            
             ativos = []
-            for _, row in df.iterrows():
+            for _, row in df_g.iterrows():
                 ativos.append({
-                    "nome": row['nome'] or "Ativo Exterior",
-                    "valor": float(row['valor']),
-                    "percentual": round((row['valor'] / pl_total) * 100, 2),
+                    "nome": row['ds_ativo_exterior'] or "Ativo Exterior",
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
                     "extra": {"pais": row['pais']}
                 })
+            
+            total_blc = df_g['vl_merc_pos_final'].sum()
             blocos.append({
                 "tipo": "exterior",
                 "nome_display": "Investimentos no Exterior",
@@ -538,8 +418,8 @@ class DataService:
             resumo["Exterior"] = round((total_blc / pl_total) * 100, 2)
         
         return {
-            "cnpj_fundo": clean_cnpj.replace("''", "'"),
-            "dt_comptc": str(max_date),
+            "cnpj_fundo": clean_cnpj,
+            "dt_comptc": date_str,
             "vl_patrim_liq": pl_total,
             "blocos": blocos,
             "resumo": resumo
@@ -549,189 +429,124 @@ class DataService:
     # FUND STRUCTURE (RELACIONAMENTOS)
     # ========================================================================
 
+    @temp()
     def get_fund_structure(self, cnpj: str) -> Optional[dict]:
-        """Retorna a estrutura do fundo (em qual fundo investe e quem investe nele)"""
         clean_cnpj = self._normalize_cnpj(cnpj)
         
-        # Buscar nome do fundo
-        sql = f"SELECT denom_social FROM cvm.cadastro WHERE cnpj_fundo = '{clean_cnpj}' AND dt_fim IS NULL LIMIT 1"
-        df = self.db.read_sql(sql)
-        nome_fundo = df['denom_social'].iloc[0] if not df.empty else "Fundo"
-        
-        # Data mais recente
-        sql = f"SELECT MAX(dt_comptc) as max_date FROM cvm.cda_fi_blc_2 WHERE cnpj_fundo = '{clean_cnpj}'"
-        df_date = self.db.read_sql(sql)
-        max_date = df_date['max_date'].iloc[0] if not df_date.empty and pd.notnull(df_date.iloc[0]['max_date']) else None
-        
+        data = fund_details.get_fund_structure_data(clean_cnpj)
+        if not data:
+            return None
+            
+        # Parse data frames to lists
         investe_em = []
-        investido_por = []
-        
-        if max_date:
-            # Fundos em que este fundo investe
-            sql = f"""
-                SELECT cnpj_fundo_cota, nm_fundo_cota, SUM(vl_merc_pos_final) as valor
-                FROM cvm.cda_fi_blc_2
-                WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-                GROUP BY cnpj_fundo_cota, nm_fundo_cota
-                ORDER BY valor DESC
-                LIMIT 20
-            """
-            df = self.db.read_sql(sql)
-            for _, row in df.iterrows():
+        if not data['investe_em'].empty:
+            for _, row in data['investe_em'].iterrows():
                 investe_em.append({
-                    "cnpj_fundo": clean_cnpj.replace("''", "'"),
+                    "cnpj_fundo": clean_cnpj,
                     "cnpj_relacionado": row['cnpj_fundo_cota'],
                     "nome_relacionado": row['nm_fundo_cota'] or "Fundo",
                     "tipo_relacao": "INVESTE_EM",
                     "valor": float(row['valor']) if pd.notnull(row['valor']) else None
                 })
-            
-            # Fundos que investem neste
-            sql = f"""
-                SELECT cnpj_fundo, denom_social, SUM(vl_merc_pos_final) as valor
-                FROM cvm.cda_fi_blc_2
-                WHERE cnpj_fundo_cota = '{clean_cnpj}'
-                AND dt_comptc = (SELECT MAX(dt_comptc) FROM cvm.cda_fi_blc_2 WHERE cnpj_fundo_cota = '{clean_cnpj}')
-                GROUP BY cnpj_fundo, denom_social
-                ORDER BY valor DESC
-                LIMIT 20
-            """
-            df = self.db.read_sql(sql)
-            for _, row in df.iterrows():
+                
+        investido_por = []
+        if not data['investido_por'].empty:
+            for _, row in data['investido_por'].iterrows():
                 investido_por.append({
-                    "cnpj_fundo": clean_cnpj.replace("''", "'"),
+                    "cnpj_fundo": clean_cnpj,
                     "cnpj_relacionado": row['cnpj_fundo'],
                     "nome_relacionado": row['denom_social'] or "Fundo",
                     "tipo_relacao": "INVESTIDO_POR",
                     "valor": float(row['valor']) if pd.notnull(row['valor']) else None
                 })
         
-        # Verificar espelho
-        espelho_de = None
-        try:
-            sql = f"SELECT cnpj_fundo_cota FROM cvm.espelhos WHERE cnpj_fundo = '{clean_cnpj}' LIMIT 1"
-            df = self.db.read_sql(sql)
-            if not df.empty:
-                espelho_de = df['cnpj_fundo_cota'].iloc[0]
-        except:
-            pass
-        
-        # Determinar tipo
+        # Determine type
         tipo = "FI"
         if investe_em and not investido_por:
-            tipo = "FIC"  # Investe em outros mas ninguém investe nele
+            tipo = "FIC"
         elif not investe_em and investido_por:
-            tipo = "MASTER"  # Não investe em outros mas outros investem nele
+            tipo = "MASTER"
         
         return {
-            "cnpj_fundo": clean_cnpj.replace("''", "'"),
-            "nome_fundo": nome_fundo,
+            "cnpj_fundo": clean_cnpj,
+            "nome_fundo": data['nome_fundo'],
             "tipo": tipo,
             "investe_em": investe_em,
             "investido_por": investido_por,
-            "espelho_de": espelho_de
+            "espelho_de": data['espelho_de']
         }
 
     # ========================================================================
     # TOP ASSETS (MAIORES POSIÇÕES)
     # ========================================================================
 
+    @temp()
     def get_top_assets(self, cnpj: str, limit: int = 10) -> List[dict]:
         """Retorna os maiores ativos da carteira"""
         clean_cnpj = self._normalize_cnpj(cnpj)
         
-        # Buscar data mais recente
-        sql = f"SELECT MAX(dt_comptc) as max_date FROM cvm.cda_fi_pl WHERE cnpj_fundo = '{clean_cnpj}'"
-        df_date = self.db.read_sql(sql)
+        df_date = portfolio.get_latest_composition_date(clean_cnpj)
         if df_date.empty or pd.isnull(df_date.iloc[0]['max_date']):
             return []
         
-        max_date = df_date.iloc[0]['max_date']
-        
-        # Buscar PL para calcular percentual
-        sql = f"SELECT vl_patrim_liq FROM cvm.cda_fi_pl WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'"
-        df_pl = self.db.read_sql(sql)
-        pl_total = float(df_pl['vl_patrim_liq'].iloc[0]) if not df_pl.empty else 1
+        date_str = str(df_date.iloc[0]['max_date'])
+        pl_total = float(df_date.iloc[0]['pl'] or 1)
         
         all_assets = []
         
-        # Ações (BLC 4)
-        sql = f"""
-            SELECT cd_ativo as codigo, ds_ativo as nome, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_4
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY cd_ativo, ds_ativo
-            ORDER BY valor DESC
-            LIMIT 20
-        """
-        df = self.db.read_sql(sql)
-        for _, row in df.iterrows():
-            all_assets.append({
-                "codigo": row['codigo'],
-                "nome": row['nome'] or row['codigo'] or "Ativo",
-                "valor": float(row['valor']),
-                "percentual": round((row['valor'] / pl_total) * 100, 2),
-                "tipo": "acao"
-            })
+        # BLC 4 (Ações)
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 4)
+        if not df.empty:
+            df_g = df.groupby(['cd_ativo', 'ds_ativo'])['vl_merc_pos_final'].sum().reset_index()
+            for _, row in df_g.iterrows():
+                all_assets.append({
+                    "codigo": row['cd_ativo'],
+                    "nome": row['ds_ativo'] or row['cd_ativo'] or "Ativo",
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
+                    "tipo": "acao"
+                })
         
-        # Cotas de fundos (BLC 2)
-        sql = f"""
-            SELECT nm_fundo_cota as nome, cnpj_fundo_cota as codigo, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_2
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY nm_fundo_cota, cnpj_fundo_cota
-            ORDER BY valor DESC
-            LIMIT 20
-        """
-        df = self.db.read_sql(sql)
-        for _, row in df.iterrows():
-            all_assets.append({
-                "codigo": row['codigo'],
-                "nome": row['nome'] or "Fundo",
-                "valor": float(row['valor']),
-                "percentual": round((row['valor'] / pl_total) * 100, 2),
-                "tipo": "cota_fundo"
-            })
+        # BLC 2 (Fundos)
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 2)
+        if not df.empty:
+            df_g = df.groupby(['nm_fundo_cota', 'cnpj_fundo_cota'])['vl_merc_pos_final'].sum().reset_index()
+            for _, row in df_g.iterrows():
+                all_assets.append({
+                    "codigo": row['cnpj_fundo_cota'],
+                    "nome": row['nm_fundo_cota'] or "Fundo",
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
+                    "tipo": "cota_fundo"
+                })
+
+        # BLC 1 (Títulos Públicos)
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 1)
+        if not df.empty:
+            df_g = df.groupby(['tp_titpub', 'tp_ativo'])['vl_merc_pos_final'].sum().reset_index()
+            for _, row in df_g.iterrows():
+                all_assets.append({
+                    "codigo": row['tp_titpub'],
+                    "nome": f"{row['tp_titpub'] or ''} {row['tp_ativo'] or ''}".strip(),
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
+                    "tipo": "titulo_publico"
+                })
+
+        # BLC 5 (Crédito Privado)
+        df = portfolio.get_portfolio_block_data(clean_cnpj, date_str, 5)
+        if not df.empty:
+            df_g = df.groupby(['emissor', 'cnpj_emissor'])['vl_merc_pos_final'].sum().reset_index()
+            for _, row in df_g.iterrows():
+                all_assets.append({
+                    "codigo": row['cnpj_emissor'],
+                    "nome": row['emissor'] or "Emissor",
+                    "valor": float(row['vl_merc_pos_final']),
+                    "percentual": round((row['vl_merc_pos_final'] / pl_total) * 100, 2),
+                    "tipo": "credito_privado"
+                })
         
-        # Títulos públicos (BLC 1)
-        sql = f"""
-            SELECT tp_titpub as codigo, tp_ativo as nome, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_1
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY tp_titpub, tp_ativo
-            ORDER BY valor DESC
-            LIMIT 20
-        """
-        df = self.db.read_sql(sql)
-        for _, row in df.iterrows():
-            all_assets.append({
-                "codigo": row['codigo'],
-                "nome": f"{row['codigo'] or ''} {row['nome'] or ''}".strip(),
-                "valor": float(row['valor']),
-                "percentual": round((row['valor'] / pl_total) * 100, 2),
-                "tipo": "titulo_publico"
-            })
-        
-        # Crédito privado (BLC 5)
-        sql = f"""
-            SELECT emissor as nome, cnpj_emissor as codigo, SUM(vl_merc_pos_final) as valor
-            FROM cvm.cda_fi_blc_5
-            WHERE cnpj_fundo = '{clean_cnpj}' AND dt_comptc = '{max_date}'
-            GROUP BY emissor, cnpj_emissor
-            ORDER BY valor DESC
-            LIMIT 20
-        """
-        df = self.db.read_sql(sql)
-        for _, row in df.iterrows():
-            all_assets.append({
-                "codigo": row['codigo'],
-                "nome": row['nome'] or "Emissor",
-                "valor": float(row['valor']),
-                "percentual": round((row['valor'] / pl_total) * 100, 2),
-                "tipo": "credito_privado"
-            })
-        
-        # Ordenar por valor e retornar top N
+        # Sort and limit
         all_assets.sort(key=lambda x: -x['valor'])
         return all_assets[:limit]
 
@@ -739,378 +554,45 @@ class DataService:
     # PEER GROUPS MANAGEMENT
     # ========================================================================
 
-    def _ensure_peer_tables(self):
-        """Cria as tabelas de peer groups se não existirem."""
-        # Criar schema site se não existir
-        self.db.execute_sql("CREATE SCHEMA IF NOT EXISTS site")
-        
-        # Tabela de grupos
-        self.db.execute_sql("""
-            CREATE TABLE IF NOT EXISTS site.peer_groups (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                description TEXT,
-                category VARCHAR(100),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        
-        # Tabela de fundos em grupos
-        self.db.execute_sql("""
-            CREATE TABLE IF NOT EXISTS site.peer_group_funds (
-                id SERIAL PRIMARY KEY,
-                group_id INTEGER REFERENCES site.peer_groups(id) ON DELETE CASCADE,
-                cnpj_fundo VARCHAR(20) NOT NULL,
-                apelido VARCHAR(255),
-                peer_cat VARCHAR(100),
-                descricao TEXT,
-                comentario TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(group_id, cnpj_fundo)
-            )
-        """)
-
     def list_peer_groups(self) -> List[dict]:
-        """Lista todos os peer groups."""
-        self._ensure_peer_tables()
-        sql = """
-            SELECT g.id, g.name, g.description, g.category, g.created_at,
-                   COUNT(f.id) as fund_count
-            FROM site.peer_groups g
-            LEFT JOIN site.peer_group_funds f ON f.group_id = g.id
-            GROUP BY g.id, g.name, g.description, g.category, g.created_at
-            ORDER BY g.name
-        """
-        df = self.db.read_sql(sql)
+        df = peer_groups.get_all_peer_groups()
         return df.to_dict('records') if not df.empty else []
 
     def create_peer_group(self, name: str, description: str = None, category: str = None) -> dict:
-        """Cria um novo peer group."""
-        self._ensure_peer_tables()
-        desc_sql = f"'{description}'" if description else "NULL"
-        cat_sql = f"'{category}'" if category else "NULL"
-        
-        sql = f"""
-            INSERT INTO site.peer_groups (name, description, category)
-            VALUES ('{name}', {desc_sql}, {cat_sql})
-            RETURNING id, name, description, category, created_at
-        """
-        print(f"DEBUG: Executing PeerGroup Insert: {sql}")
-        df = self.db.read_sql(sql)
-        print(f"DEBUG: Result DF Empty? {df.empty}")
-        if not df.empty:
-            return df.iloc[0].to_dict()
-        return {"error": "Failed to create peer group"}
+        gid = peer_groups.insert_peer_group(name, description, category)
+        return {"id": gid, "name": name, "description": description, "category": category}
 
     def get_peer_group(self, group_id: int) -> Optional[dict]:
-        """Retorna detalhes de um peer group com seus fundos."""
-        self._ensure_peer_tables()
-        
-        # Buscar grupo
-        sql = f"SELECT * FROM site.peer_groups WHERE id = {group_id}"
-        df_group = self.db.read_sql(sql)
-        
-        if df_group.empty:
+        df = peer_groups.get_peer_group_by_id(group_id)
+        if df.empty:
             return None
+            
+        group = df.iloc[0].to_dict()
         
-        group = df_group.iloc[0].to_dict()
-        
-        # Buscar fundos do grupo com dados do cadastro
-        sql = f"""
-            SELECT pgf.*, c.denom_social, c.gestor, c.classe, c.sit
-            FROM site.peer_group_funds pgf
-            LEFT JOIN cvm.cadastro c ON c.cnpj_fundo = pgf.cnpj_fundo AND c.dt_fim IS NULL
-            WHERE pgf.group_id = {group_id}
-            ORDER BY pgf.apelido, c.denom_social
-        """
-        df_funds = self.db.read_sql(sql)
-        group['funds'] = df_funds.to_dict('records') if not df_funds.empty else []
-        
+        # Get funds
+        df_funds = peer_groups.get_peer_group_funds(group_id)
+        funds = []
+        if not df_funds.empty:
+            funds = df_funds.to_dict('records')
+            
+        group['funds'] = funds
         return group
 
     def delete_peer_group(self, group_id: int) -> bool:
-        """Deleta um peer group."""
-        self._ensure_peer_tables()
-        sql = f"DELETE FROM site.peer_groups WHERE id = {group_id}"
-        try:
-            self.db.execute_sql(sql)
-            return True
-        except:
-            return False
+        peer_groups.delete_peer_group_record(group_id)
+        return True
 
-    def add_fund_to_peer_group(self, group_id: int, cnpj_fundo: str, 
-                                apelido: str = None, peer_cat: str = None,
-                                descricao: str = None, comentario: str = None) -> dict:
-        """Adiciona um fundo a um peer group."""
-        self._ensure_peer_tables()
-        clean_cnpj = self._normalize_cnpj(cnpj_fundo)
-        
-        apelido_sql = f"'{apelido}'" if apelido else "NULL"
-        peer_cat_sql = f"'{peer_cat}'" if peer_cat else "NULL"
-        descricao_sql = f"'{descricao}'" if descricao else "NULL"
-        comentario_sql = f"'{comentario}'" if comentario else "NULL"
-        
-        sql = f"""
-            INSERT INTO site.peer_group_funds (group_id, cnpj_fundo, apelido, peer_cat, descricao, comentario)
-            VALUES ({group_id}, '{clean_cnpj}', {apelido_sql}, {peer_cat_sql}, {descricao_sql}, {comentario_sql})
-            ON CONFLICT (group_id, cnpj_fundo) DO UPDATE SET
-                apelido = EXCLUDED.apelido,
-                peer_cat = EXCLUDED.peer_cat,
-                descricao = EXCLUDED.descricao,
-                comentario = EXCLUDED.comentario,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING id, group_id, cnpj_fundo, apelido, peer_cat, descricao, comentario
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty:
-            return df.iloc[0].to_dict()
-        return {"error": "Failed to add fund to peer group"}
-
-    def update_fund_in_peer_group(self, group_id: int, cnpj: str,
-                                   apelido: str = None, peer_cat: str = None,
-                                   descricao: str = None, comentario: str = None) -> dict:
-        """Atualiza informações de um fundo em um peer group."""
+    def add_fund_to_peer_group(self, group_id: int, cnpj: str, apelido: str, peer_cat: str, desc: str, comment: str):
         clean_cnpj = self._normalize_cnpj(cnpj)
-        
-        updates = []
-        if apelido is not None:
-            updates.append(f"apelido = '{apelido}'")
-        if peer_cat is not None:
-            updates.append(f"peer_cat = '{peer_cat}'")
-        if descricao is not None:
-            updates.append(f"descricao = '{descricao}'")
-        if comentario is not None:
-            updates.append(f"comentario = '{comentario}'")
-        
-        if not updates:
-            return {"error": "Nothing to update"}
-        
-        updates.append("updated_at = CURRENT_TIMESTAMP")
-        updates_sql = ", ".join(updates)
-        
-        sql = f"""
-            UPDATE site.peer_group_funds
-            SET {updates_sql}
-            WHERE group_id = {group_id} AND cnpj_fundo = '{clean_cnpj}'
-            RETURNING id, group_id, cnpj_fundo, apelido, peer_cat, descricao, comentario
-        """
-        df = self.db.read_sql(sql)
-        if not df.empty:
-            return df.iloc[0].to_dict()
-        return {"error": "Fund not found in peer group"}
+        fid = peer_groups.add_fund_to_peer_group_record(group_id, clean_cnpj, apelido, peer_cat, desc, comment)
+        return {"id": fid, "cnpj_fundo": clean_cnpj}
+
+    def update_fund_in_peer_group(self, group_id: int, cnpj: str, apelido: str, peer_cat: str, desc: str, comment: str):
+        clean_cnpj = self._normalize_cnpj(cnpj)
+        peer_groups.update_fund_peer_record(group_id, clean_cnpj, apelido, peer_cat, desc, comment)
+        return {"status": "updated"}
 
     def remove_fund_from_peer_group(self, group_id: int, cnpj: str) -> bool:
-        """Remove um fundo de um peer group."""
         clean_cnpj = self._normalize_cnpj(cnpj)
-        sql = f"DELETE FROM site.peer_group_funds WHERE group_id = {group_id} AND cnpj_fundo = '{clean_cnpj}'"
-        try:
-            self.db.execute_sql(sql)
-            return True
-        except:
-            return False
-
-
-    # ========================================================================
-    # ALLOCATORS DASHBOARD
-    # ========================================================================
-
-    def get_allocator_filters(self) -> Dict[str, Any]:
-        """Retorna filtros disponíveis usando cvm.carteira."""
-        # Clientes e Segmentos direto da carteira
-        sql = """
-            SELECT DISTINCT cliente, cliente_segmentado 
-            FROM cvm.carteira 
-            WHERE cliente IS NOT NULL
-            ORDER BY cliente, cliente_segmentado
-        """
-        df = self.db.read_sql(sql)
-        
-        clients = sorted(df['cliente'].dropna().unique().tolist())
-        segments = sorted(df['cliente_segmentado'].dropna().unique().tolist())
-        
-        # Mapa Cliente -> Segmentos
-        segments_by_client = {}
-        for _, row in df.iterrows():
-            c = row['cliente']
-            s = row['cliente_segmentado']
-            if c and s:
-                if c not in segments_by_client:
-                    segments_by_client[c] = []
-                if s not in segments_by_client[c]:
-                    segments_by_client[c].append(s)
-        
-        # Peers (Classes de ativos)
-        sql_peers = "SELECT DISTINCT peer FROM cvm.carteira WHERE peer IS NOT NULL ORDER BY peer"
-        df_peers = self.db.read_sql(sql_peers)
-        peers = df_peers['peer'].tolist()
-        
-        return {
-            "clients": clients,
-            "segments": segments,
-            "segments_by_client": segments_by_client,
-            "peers": peers
-        }
-
-    def get_allocator_flow(self, client: str = None, segment: str = None, peer: str = None, window: int = 12) -> Dict[str, Any]:
-        """Dados para a aba Fluxo e Posição usando alocadores.fluxo_veiculos."""
-        
-        # Filtros para fluxo_veiculos (usando cliente_segmentado que deve existir lá)
-        filter_clauses = []
-        if client:
-            filter_clauses.append(f"f.cnpj_fundo IN (SELECT DISTINCT cnpj_fundo FROM cvm.carteira WHERE cliente = '{client}')")
-        if segment and segment != 'all':
-            filter_clauses.append(f"f.cnpj_fundo IN (SELECT DISTINCT cnpj_fundo FROM cvm.carteira WHERE cliente_segmentado = '{segment}')")
-        if peer and peer != 'all':
-            filter_clauses.append(f"f.peer_ativo = '{peer}'")
-            
-        where_sql = " AND ".join(filter_clauses) if filter_clauses else "1=1"
-        
-        # 1. Evolução Patrimonial - usando cvm.carteira agregado por mês
-        cart_filters = []
-        if client:
-            cart_filters.append(f"cliente = '{client}'")
-        if segment and segment != 'all':
-            cart_filters.append(f"cliente_segmentado = '{segment}'")
-        if peer and peer != 'all':
-            cart_filters.append(f"peer = '{peer}'")
-        cart_where = " AND ".join(cart_filters) if cart_filters else "1=1"
-        
-        sql_evolution = f"""
-            SELECT dt_comptc, SUM(vl_merc_pos_final) as total_pl
-            FROM cvm.carteira
-            WHERE {cart_where}
-            GROUP BY dt_comptc
-            ORDER BY dt_comptc
-        """
-        df_ev = self.db.read_sql(sql_evolution)
-        evolution_data = []
-        if not df_ev.empty:
-            df_ev['dt_comptc'] = pd.to_datetime(df_ev['dt_comptc'])
-            evolution_data = df_ev.apply(lambda x: {
-                "month": x['dt_comptc'].strftime('%b/%y'),
-                "date": x['dt_comptc'].isoformat(),
-                "value": float(x['total_pl']) if pd.notnull(x['total_pl']) else 0,
-                "multimercado": float(x['total_pl']) if pd.notnull(x['total_pl']) else 0
-            }, axis=1).tolist()
-
-        # 2. Distribuição de Fluxo
-        col_fluxo = f"fluxo_{window}m"
-        sql_flow = f"""
-            SELECT c.cliente_segmentado as client, SUM(f.{col_fluxo}) as flow
-            FROM alocadores.fluxo_veiculos f
-            JOIN cvm.carteira c ON c.cnpj_fundo = f.cnpj_fundo
-            WHERE {cart_where}
-            GROUP BY c.cliente_segmentado
-            ORDER BY flow DESC
-        """
-        try:
-            df_flow = self.db.read_sql(sql_flow)
-            flow_data = df_flow.to_dict('records') if not df_flow.empty else []
-        except:
-            flow_data = []
-        
-        return {
-            "evolution": evolution_data,
-            "flow_distribution": flow_data
-        }
-
-    def get_allocator_performance(self, client: str = None, segment: str = None, window: int = 12) -> Dict[str, Any]:
-        """Dados para a aba Performance. 
-        Usando métricas dos fundos alocadores direto de cvm.metrics.
-        Estrutura: janela (6M, 12M, 24M...), ret, vol, sharpe
-        """
-        # Filtros para carteira
-        cart_filters = []
-        if client:
-            cart_filters.append(f"cliente = '{client}'")
-        if segment and segment != 'all':
-            cart_filters.append(f"cliente_segmentado = '{segment}'")
-        cart_where = " AND ".join(cart_filters) if cart_filters else "1=1"
-        
-        # Mapear window para janela
-        janela = f"{window}M"
-        
-        sql = f"""
-            SELECT DISTINCT c.cnpj_fundo, c.cliente_segmentado as name,
-                   m.ret, m.vol, m.sharpe
-            FROM cvm.carteira c
-            JOIN cvm.metrics m ON m.cnpj_fundo = c.cnpj_fundo
-            WHERE {cart_where} 
-              AND m.janela = '{janela}'
-              AND m.dt_comptc = (SELECT MAX(dt_comptc) FROM cvm.metrics WHERE janela = '{janela}')
-        """
-        try:
-            df = self.db.read_sql(sql)
-        except Exception as e:
-            print(f"[Performance] Error: {e}")
-            df = pd.DataFrame()
-            
-        scatter_data = []
-        if not df.empty:
-            # Filtrar NaN
-            df = df.dropna(subset=['vol', 'ret'])
-            scatter_data = df.apply(lambda x: {
-                "x": float(x['vol']) if pd.notnull(x['vol']) else 0,
-                "y": float(x['ret']) if pd.notnull(x['ret']) else 0,
-                "z": 10,
-                "name": x['name']
-            }, axis=1).tolist()
-            
-        return {
-            "scatter": scatter_data,
-            "boxplots": []
-        }
-
-
-    def get_allocator_allocation(self, client: str = None, segment: str = None, peer: str = None) -> Dict[str, Any]:
-        """Dados para a aba Alocação usando cvm.carteira (cache-first)."""
-        
-        # Filtros
-        filter_clauses = []
-        if client:
-            filter_clauses.append(f"cliente = '{client}'")
-        if segment and segment != 'all':
-            filter_clauses.append(f"cliente_segmentado = '{segment}'")
-        if peer and peer != 'all':
-            filter_clauses.append(f"peer = '{peer}'")
-        where_sql = " AND ".join(filter_clauses) if filter_clauses else "1=1"
-        
-        # Pegar data mais recente disponível para os filtros selecionados
-        sql_max_date = f"SELECT MAX(dt_comptc) FROM cvm.carteira WHERE {where_sql}"
-        max_dt = self.db.read_sql(sql_max_date).iloc[0,0]
-        
-        if not max_dt:
-            return {"snapshot": [], "evolution_manager": []}
-        
-        # Snapshot: Posição por fundo investido na data mais recente
-        sql_snapshot = f"""
-            SELECT cnpj_fundo_cota, 
-                   MAX(nm_fundo_cota) as name, 
-                   MAX(peer) as desc,
-                   SUM(vl_merc_pos_final) as value_raw
-            FROM cvm.carteira
-            WHERE {where_sql} AND dt_comptc = '{max_dt}'
-            GROUP BY cnpj_fundo_cota
-            ORDER BY value_raw DESC
-            LIMIT 20
-        """
-        df_snap = self.db.read_sql(sql_snapshot)
-        
-        total_pl = df_snap['value_raw'].sum() if not df_snap.empty else 0
-        snapshot_data = []
-        if not df_snap.empty and total_pl > 0:
-            snapshot_data = df_snap.apply(lambda x: {
-                "symbol": (str(x['desc'] or 'N/A')[:3]).upper(),
-                "name": str(x['name'] or x['cnpj_fundo_cota'])[:40],
-                "desc": x['desc'] or 'Fundo',
-                "pl": float(x['value_raw']),
-                "value": round((float(x['value_raw']) / total_pl) * 100, 2)
-            }, axis=1).tolist()
-
-        return {
-            "snapshot": snapshot_data,
-            "evolution_manager": []
-        }
-
+        peer_groups.remove_fund_peer_record(group_id, clean_cnpj)
+        return True
