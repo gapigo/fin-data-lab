@@ -8,8 +8,8 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
 
-from models import FundSearchResponse, FundDetail, QuotaData, FundHistory, FundMetrics, FundComposition
 from service import DataService
+from services.allocators_service import allocators_service
 from cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
 
 app = FastAPI(title="Fin Data Lab API", description="API for CVM Fund Data")
@@ -212,7 +212,7 @@ def remove_fund_from_peer_group(group_id: int, cnpj: str):
 # FUND SEARCH & DETAIL
 # ============================================================================
 
-@app.get("/funds", response_model=List[FundSearchResponse])
+@app.get("/funds")
 def search_funds(
     q: Optional[str] = Query(None, description="Search term for fund name or CNPJ"),
     limit: int = Query(50, le=100)
@@ -255,7 +255,7 @@ def _execute_with_dedup(endpoint: str, params_str: str, func, *args, **kwargs):
         raise
 
 
-@app.get("/funds/{cnpj:path}/history", response_model=List[QuotaData])
+@app.get("/funds/{cnpj:path}/history")
 def get_fund_history(
     cnpj: str = Path(..., description="Fund CNPJ (e.g., 29.206.196/0001-57)"),
     start_date: Optional[date] = Query(None, description="Start date for history (YYYY-MM-DD)")
@@ -269,7 +269,7 @@ def get_fund_history(
     )
 
 
-@app.get("/funds/{cnpj:path}/metrics", response_model=FundMetrics)
+@app.get("/funds/{cnpj:path}/metrics")
 def get_fund_metrics(cnpj: str = Path(...)):
     """Get performance metrics for a fund."""
     result = _execute_with_dedup(
@@ -340,7 +340,7 @@ def get_top_assets(
 
 
 # Este endpoint deve vir por ÚLTIMO para não conflitar com os outros paths
-@app.get("/funds/{cnpj:path}", response_model=FundDetail)
+@app.get("/funds/{cnpj:path}")
 def get_fund_details(cnpj: str = Path(...)):
     """Get detailed information about a specific fund."""
     result = _execute_with_dedup(
@@ -352,6 +352,47 @@ def get_fund_details(cnpj: str = Path(...)):
     if not result:
         raise HTTPException(status_code=404, detail="Fund not found")
     return result
+
+
+# ============================================================================
+# ALLOCATORS ENDPOINTS (NEW - Using AllocatorsService)
+# ============================================================================
+
+@app.get("/allocators/filters")
+def get_allocator_filters():
+    """Get available filter options for allocators dashboard."""
+    return allocators_service.get_filters()
+
+
+@app.get("/allocators/flow")
+def get_allocator_flow(
+    client: Optional[str] = None, 
+    segment: Optional[str] = None, 
+    peer: Optional[str] = None,
+    window: int = 12
+):
+    """Get flow and position data for allocators."""
+    return allocators_service.get_flow_data(client, segment, peer, window)
+
+
+@app.get("/allocators/performance")
+def get_allocator_performance(
+    client: Optional[str] = None, 
+    segment: Optional[str] = None,
+    peer: Optional[str] = None
+):
+    """Get performance data for allocators (metrics, scatter, table)."""
+    return allocators_service.get_performance_data(client, segment, peer)
+
+
+@app.get("/allocators/allocation")
+def get_allocator_allocation(
+    client: Optional[str] = None, 
+    segment: Optional[str] = None,
+    peer: Optional[str] = None
+):
+    """Get allocation data for allocators (evolution, snapshot, pie)."""
+    return allocators_service.get_allocation_data(client, segment, peer)
 
 
 if __name__ == "__main__":

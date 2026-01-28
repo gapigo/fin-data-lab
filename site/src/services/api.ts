@@ -345,6 +345,57 @@ export const FundingService = {
             method: 'DELETE'
         });
         return res.ok;
+    },
+
+    // ============ ALLOCATORS DASHBOARD ============
+
+    async getAllocatorFilters(): Promise<AllocatorFilters> {
+        const cacheKey = 'allocatorFilters';
+        return cachedFetch(cacheKey, 'allocatorFilters', async () => {
+            const res = await fetch(`${API_Base}/allocators/filters`);
+            if (!res.ok) throw new Error("Failed");
+            return res.json();
+        });
+    },
+
+    async getAllocatorFlow(client?: string, segment?: string, peer?: string, window: number = 12): Promise<AllocatorFlowData> {
+        const cacheKey = generateCacheKey('allocatorFlow', client, segment, peer, window);
+        return cachedFetch(cacheKey, 'allocatorFlow', async () => {
+            const p = new URLSearchParams();
+            if (client) p.append('client', client);
+            if (segment && segment !== 'all') p.append('segment', segment);
+            if (peer && peer !== 'all') p.append('peer', peer);
+            p.append('window', window.toString());
+            const res = await fetch(`${API_Base}/allocators/flow?${p.toString()}`);
+            if (!res.ok) throw new Error("Failed");
+            return res.json();
+        });
+    },
+
+    async getAllocatorPerformance(client?: string, segment?: string, peer?: string): Promise<AllocatorPerformanceData> {
+        const cacheKey = generateCacheKey('allocatorPerf', client, segment, peer);
+        return cachedFetch(cacheKey, 'allocatorPerf', async () => {
+            const p = new URLSearchParams();
+            if (client) p.append('client', client);
+            if (segment && segment !== 'all') p.append('segment', segment);
+            if (peer && peer !== 'all') p.append('peer', peer);
+            const res = await fetch(`${API_Base}/allocators/performance?${p.toString()}`);
+            if (!res.ok) throw new Error("Failed");
+            return res.json();
+        });
+    },
+
+    async getAllocatorAllocation(client?: string, segment?: string, peer?: string): Promise<AllocatorAllocationData> {
+        const cacheKey = generateCacheKey('allocatorAlloc', client, segment, peer);
+        return cachedFetch(cacheKey, 'allocatorAlloc', async () => {
+            const p = new URLSearchParams();
+            if (client) p.append('client', client);
+            if (segment && segment !== 'all') p.append('segment', segment);
+            if (peer && peer !== 'all') p.append('peer', peer);
+            const res = await fetch(`${API_Base}/allocators/allocation?${p.toString()}`);
+            if (!res.ok) throw new Error("Failed");
+            return res.json();
+        });
     }
 };
 
@@ -378,4 +429,38 @@ export interface PeerFund {
 
 export interface PeerGroupDetail extends PeerGroup {
     funds: PeerFund[];
+}
+
+export interface AllocatorFilters {
+    clients: string[];
+    segments: string[];
+    segments_by_client: Record<string, string[]>;
+    peers: string[];
+}
+
+export interface AllocatorFlowData {
+    evolution: { month: string; date: string; value: number; multimercado: number }[];
+    flow_distribution: { client: string; flow: number }[];
+}
+
+export interface AllocatorPerformanceData {
+    flow_by_window: { window: string; value: number }[];
+    metrics_ret: { window: string; q1: number; median: number; q3: number }[];
+    metrics_vol: { window: string; q1: number; median: number; q3: number }[];
+    metrics_dd: { window: string; q1: number; median: number; q3: number }[];
+    scatter_12m: { x: number; y: number; z: number; name: string }[];
+    performance_table: {
+        name: string;
+        cnpj: string;
+        [key: string]: { value: number | null; status: string } | string;
+    }[];
+}
+
+export interface AllocatorAllocationData {
+    flow_by_window: { window: string; value: number }[];
+    evolution: Record<string, any>[];
+    gestores: string[];
+    movement_diff: { month: string; value: number }[];
+    snapshot: { symbol: string; name: string; desc: string; pl: number; value: number }[];
+    pie_data: { name: string; value: number; pl: number }[];
 }

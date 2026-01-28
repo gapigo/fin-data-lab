@@ -30,8 +30,15 @@ const CACHE_DURATIONS = {
     fundHistory: 24 * 60 * 60 * 1000,    // 24 horas
     fundMetrics: 24 * 60 * 60 * 1000,    // 24 horas
     fundComposition: 24 * 60 * 60 * 1000, // 24 horas
+    fundPortfolio: 24 * 60 * 60 * 1000,   // 24 horas
+    fundStructure: 24 * 60 * 60 * 1000,   // 24 horas
+    fundTopAssets: 24 * 60 * 60 * 1000,   // 24 horas
     fundSearch: 12 * 60 * 60 * 1000,     // 12 horas (buscas são mais dinâmicas)
     fundSuggest: 6 * 60 * 60 * 1000,     // 6 horas (sugestões podem mudar mais frequentemente)
+    allocatorFilters: 24 * 60 * 60 * 1000, // 24 horas
+    allocatorFlow: 12 * 60 * 60 * 1000,    // 12 horas
+    allocatorPerf: 12 * 60 * 60 * 1000,    // 12 horas
+    allocatorAlloc: 12 * 60 * 60 * 1000,   // 12 horas
     default: 24 * 60 * 60 * 1000,        // 24 horas
 } as const;
 

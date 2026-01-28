@@ -1,5 +1,4 @@
 
-
 import sys
 import os
 import pandas as pd
@@ -11,168 +10,107 @@ from common.postgresql import PostgresConnector
 
 def calcular_fluxo():
     db = PostgresConnector()
-    print("Iniciando cálculo de fluxo de veículos com quebra por Peer (Classe)...")
+    print("Iniciando cálculo de fluxo de veículos (Histórico Completo) usando cvm.carteira...")
 
-    # 1. Carregar os CNPJs de interesse (Alocadores) e sua Segmentação
-    print("Carregando alocadores e segmentos...")
-    df_alocadores = db.read_sql("SELECT DISTINCT cnpj_fundo, segmentacao FROM alocadores.cliente_segmentado")
-    if df_alocadores.empty:
-        print("Erro: Tabela alocadores.cliente_segmentado está vazia.")
-        return
+    # 1. Carregar lista de fundos (Alocadores) da view
+    print("Carregando lista de fundos alocadores...")
+    df_cnpjs = db.read_sql("SELECT DISTINCT cnpj_fundo, cliente_segmentado FROM cvm.carteira")
     
-    # Normalizar CNPJs dos alocadores para garantir match
-    cnpjs_alocadores = tuple(df_alocadores['cnpj_fundo'].tolist())
-    
-    # 2. Carregar dados da Carteira (blc_2)
-    print("Carregando dados da carteira (cvm.cda_fi_blc_2)...")
-    if len(cnpjs_alocadores) == 1:
-        where_clause = f"= '{cnpjs_alocadores[0]}'"
-    else:
-        where_clause = f"IN {str(cnpjs_alocadores).replace(',)', ')')}"
-
-    query_carteira = f"""
-        SELECT cnpj_fundo, cnpj_fundo_cota, dt_comptc, vl_merc_pos_final
-        FROM cvm.cda_fi_blc_2
-        WHERE cnpj_fundo {where_clause}
-    """
-    df_carteira = db.read_sql(query_carteira)
-    
-    if df_carteira.empty:
-        print("Nenhum dado de carteira encontrado.")
+    if df_cnpjs.empty:
+        print("Erro: View cvm.carteira retornou zero alocadores.")
         return
 
-    print(f"Dados de carteira carregados: {len(df_carteira)} registros.")
+    # Garantir unicidade
+    df_cnpjs = df_cnpjs.drop_duplicates('cnpj_fundo')
+    alocadores = df_cnpjs.to_dict('records') 
+    print(f"Total de alocadores identificados: {len(alocadores)}")
+
+    janelas = [1, 3, 6, 12, 24, 36, 48, 60]
     
-    # 3. Carregar Classes (Peers) dos Fundos Investidos
-    # Pegamos todos os CNPJs que aparecem como ativos
-    cnpjs_investidos = df_carteira['cnpj_fundo_cota'].dropna().unique().tolist()
+    # Otimização: Batch processing para reduzir queries
+    batch_size = 10000
+    all_results = []
     
-    # Batch processing se forem muitos CNPJs
-    print(f"Buscando classes para {len(cnpjs_investidos)} fundos investidos...")
+    # Mapa de segmento para acesso rápido
+    seg_map = {row['cnpj_fundo']: row['cliente_segmentado'] for row in alocadores}
     
-    # Buscar classe mais recente (dt_fim IS NULL ou maior dt_ini)
-    # Otimização: ler cadastro simplificado
-    chunk_size = 5000
-    peer_map = {}
+    print(f"Processando em lotes de {batch_size}...")
     
-    for i in range(0, len(cnpjs_investidos), chunk_size):
-        chunk = cnpjs_investidos[i:i+chunk_size]
-        if len(chunk) == 1:
-            chunk_where = f"= '{chunk[0]}'"
-        else:
-            chunk_where = f"IN {str(tuple(chunk)).replace(',)', ')')}"
-            
-        q_classe = f"""
-            SELECT cnpj_fundo, classe, sit 
-            FROM cvm.cadastro 
-            WHERE cnpj_fundo {chunk_where}
-            ORDER BY dt_ini DESC
+    for i in range(0, len(alocadores), batch_size):
+        chunk = alocadores[i:i+batch_size]
+        # Formatar CNPJs para clausula IN
+        cnpjs_list = [f"'{x['cnpj_fundo']}'" for x in chunk]
+        where_in = ",".join(cnpjs_list)
+        
+        # Query Batch
+        query = f"""
+            SELECT cnpj_fundo, dt_comptc, peer, SUM(vl_merc_pos_final) as total_pos
+            FROM cvm.carteira
+            WHERE cnpj_fundo IN ({where_in})
+            GROUP BY cnpj_fundo, dt_comptc, peer
+            ORDER BY cnpj_fundo, dt_comptc
         """
-        df_classes = db.read_sql(q_classe)
-        # Drop duplicates mantendo o primeiro (mais recente devido ao order by)
-        df_classes.drop_duplicates('cnpj_fundo', keep='first', inplace=True)
+        df_batch = db.read_sql(query)
         
-        # Criar mapa CNPJ -> Classe
-        batch_map = df_classes.set_index('cnpj_fundo')['classe'].to_dict()
-        peer_map.update(batch_map)
-        
-    print("Mapeamento de classes concluído.")
-    
-    # 4. Enriquecer Carteira com Peer e Segmentação do Alocador
-    # Mapear Peer do Ativo
-    df_carteira['peer_ativo'] = df_carteira['cnpj_fundo_cota'].map(peer_map).fillna('Outros')
-    
-    # Mapear Segmentação do Alocador (Peer do CNPJ Fundo)
-    # O usuário pediu "cnpj_fundo e peer mais recente". 
-    # Vou incluir o peer do alocador (segmentação) como coluna também.
-    alocador_map = df_alocadores.set_index('cnpj_fundo')['segmentacao'].to_dict()
-    df_carteira['peer_alocador'] = df_carteira['cnpj_fundo'].map(alocador_map)
-    
-    # 5. Agrupar Somando Posição
-    # Agrupamos por Alocador, Peer do Ativo, Data
-    print("Agrupando dados...")
-    df_grouped = df_carteira.groupby(['cnpj_fundo', 'peer_ativo', 'dt_comptc'])['vl_merc_pos_final'].sum().reset_index()
-    df_grouped.rename(columns={'vl_merc_pos_final': 'total_pos'}, inplace=True)
-    
-    # 6. Calcular Fluxos Janelados (Lógica Snapshot Referência Global com Ffill)
-    print("Calculando fluxos (Referência Global c/ Ffill)...")
-    df_grouped['dt_comptc'] = pd.to_datetime(df_grouped['dt_comptc'])
-    
-    # Definir Data de Referência (Máxima encontrada na base GERAL)
-    max_date = df_grouped['dt_comptc'].max()
-    # Normalizar para final de mês para garantir
-    from pandas.tseries.offsets import MonthEnd
-    max_date = max_date + MonthEnd(0)
-    
-    print(f"Data de Referência Global: {max_date.date()}")
-    
-    janelas = [6, 12, 24, 36, 48, 60]
-    final_rows = []
-    
-    # Processar Fundo a Fundo para evitar explosão de memória e garantir ffill correto
-    cnpjs_unicos = df_grouped['cnpj_fundo'].unique()
-    
-    print(f"Processando {len(cnpjs_unicos)} fundos individuais...")
-    
-    for i, cnpj in enumerate(cnpjs_unicos):
-        # Filtrar dados do fundo
-        df_fundo = df_grouped[df_grouped['cnpj_fundo'] == cnpj].copy()
-        
-        # Pivotar: Index=Data, Columns=PeerAtivo
-        pivot = df_fundo.pivot(index='dt_comptc', columns='peer_ativo', values='total_pos')
-        
-        # Criar índice de datas completo do início do fundo até a DATA MÁXIMA GLOBAL
-        start_date = pivot.index.min()
-        full_idx = pd.date_range(start=start_date, end=max_date, freq='ME') 
-        
-        # Reindexar e Ffill
-        pivot_filled = pivot.reindex(full_idx).ffill()
-        
-        # Preencher NaNs residuais com 0 (caso fundo começou depois ou gaps no início - embora ffill cubra gaps)
-        pivot_filled = pivot_filled.fillna(0)
-        
-        # Agora pegamos apenas a linha da Data de Referência
-        if max_date not in pivot_filled.index:
+        if df_batch.empty:
             continue
             
-        row_ref = pivot_filled.loc[max_date] 
+        df_batch['dt_comptc'] = pd.to_datetime(df_batch['dt_comptc'])
         
-        # Para cada Peer Ativo, calcular os fluxos
-        for peer_ativo in row_ref.index:
-            val_atual = row_ref[peer_ativo]
+        # Processar cada fundo do batch localmente
+        for cnpj, df_fundo in df_batch.groupby('cnpj_fundo'):
+            segmento = seg_map.get(cnpj, 'Desconhecido')
             
-            # Se a posição atual é zero, mas já teve posição antes, pode ser saída relevante
-            # Se nunca teve (sempre 0), é ruído, mas deixamos
+            # Pivot
+            pivot = df_fundo.pivot(index='dt_comptc', columns='peer', values='total_pos')
+            # Resample mensal para garantir continuidade
+            pivot = pivot.resample('ME').last().fillna(0.0)
             
-            res = {
-                'cnpj_fundo': cnpj,
-                'peer_ativo': peer_ativo,
-                'dt_comptc': max_date.date(),
-                'total_pos': val_atual
-            }
+            # Formato Long (Posição)
+            df_long = pivot.stack().reset_index().rename(columns={0: 'total_pos'})
+            df_long['cnpj_fundo'] = cnpj
+            df_long['cliente_segmentado'] = segmento
             
+            # Calcular Fluxos
+            fluxo_cols = {}
             for m in janelas:
-                # Calcular data passada exata
-                dt_past = max_date - pd.DateOffset(months=m) + MonthEnd(0)
-                
-                # Buscar valor passado no pivot preenchido
-                val_past = 0.0
-                if dt_past in pivot_filled.index:
-                    val_past = pivot_filled.loc[dt_past, peer_ativo]
-                
-                # Fluxo
-                res[f'fluxo_{m}m'] = val_atual - val_past
+                diff_m = pivot.diff(periods=m)
+                stacked_diff = diff_m.stack().reset_index().rename(columns={0: f'fluxo_{m}m'})
+                # Indexar para join fácil
+                fluxo_cols[m] = stacked_diff.set_index(['dt_comptc', 'peer'])[f'fluxo_{m}m']
+
+            # Adicionar colunas de fluxo ao df principal
+            df_long = df_long.set_index(['dt_comptc', 'peer'])
+            for m in janelas:
+                df_long[f'fluxo_{m}m'] = fluxo_cols[m]
             
-            final_rows.append(res)
+            df_long = df_long.reset_index()
             
-    # Criar DF final
-    final_df = pd.DataFrame(final_rows)
+            # Filtrar dados anteriores ao inicio real
+            start_date = df_fundo['dt_comptc'].min()
+            from pandas.tseries.offsets import MonthEnd
+            start_date = start_date + MonthEnd(0)
+            df_long = df_long[df_long['dt_comptc'] >= start_date]
+            
+            all_results.append(df_long)
+        
+        # Logging de progresso
+        if (i + batch_size) % 500 == 0 or (i + batch_size) >= len(alocadores):
+            processed_count = min(i + batch_size, len(alocadores))
+            print(f"Processados {processed_count}/{len(alocadores)} fundos...")
+
+    if not all_results:
+        print("Nenhum resultado gerado.")
+        return
+
+    print("Concatenando resultados finais...")
+    final_df = pd.concat(all_results, ignore_index=True)
+    final_df['dt_comptc'] = final_df['dt_comptc'].dt.date
     
-    print("Amostra:")
-    print(final_df.head())
+    # Renomear peer -> peer_ativo para compatibilidade com API
+    final_df.rename(columns={'peer': 'peer_ativo'}, inplace=True)
     
-    # 7. Salvar
-    print("Salvando tabela alocadores.fluxo_veiculos...")
+    print(f"Salvando {len(final_df)} registros em alocadores.fluxo_veiculos...")
     db.overwrite_table(final_df, 'alocadores.fluxo_veiculos')
     print("Concluído!")
 
