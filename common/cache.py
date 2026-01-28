@@ -298,11 +298,15 @@ def temp(ttl: int = 86400):
     - Automatically creates cache directory if it doesn't exist
     - Removes expired cache files on cleanup
     - File naming: {function_name}_{params_hash}_{unix_time}.pkl
+    - Uses file-based locking to prevent race conditions
     
     Args:
         ttl: Time-to-live in seconds (default: 86400 = 1 day)
     """
     def decorator(func: Callable) -> Callable:
+        # Per-function lock to prevent race conditions
+        _func_lock = threading.Lock()
+        
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             # Ensure cache dir exists
@@ -311,36 +315,40 @@ def temp(ttl: int = 86400):
             func_name = func.__name__
             params_hash = _get_params_hash(args, kwargs)
             
-            # Try to find valid cache
-            cached_file = _find_valid_cache(func_name, params_hash, ttl)
-            
-            if cached_file:
+            # Use lock to prevent race conditions when checking/writing cache
+            with _func_lock:
+                # Try to find valid cache (INSIDE the lock)
+                cached_file = _find_valid_cache(func_name, params_hash, ttl)
+                
+                if cached_file:
+                    try:
+                        with open(cached_file, 'rb') as f:
+                            result = pickle.load(f)
+                        print(f"[CACHE] Hit for {func_name} ({params_hash})")
+                        return result
+                    except Exception as e:
+                        print(f"[CACHE] Error loading cache for {func_name}: {e}")
+                
+                # Execute function (still inside lock to prevent duplicate execution)
+                print(f"[CACHE] Miss for {func_name} ({params_hash}) - executing function...")
+                result = func(*args, **kwargs)
+                
+                # Remove old cache files for same params BEFORE saving new one
+                _remove_old_cache_for_params(func_name, params_hash)
+                
+                # Save new cache file
+                unix_time = int(time.time())
+                cache_filename = f"{func_name}_{params_hash}_{unix_time}.pkl"
+                cache_path = CACHE_DIR / cache_filename
+                
                 try:
-                    with open(cached_file, 'rb') as f:
-                        result = pickle.load(f)
-                    print(f"[CACHE] Hit for {func_name} ({params_hash})")
-                    return result
+                    with open(cache_path, 'wb') as f:
+                        pickle.dump(result, f)
+                    print(f"[CACHE] Saved {func_name} ({params_hash}) -> {cache_filename}")
                 except Exception as e:
-                    print(f"[CACHE] Error loading cache for {func_name}: {e}")
+                    print(f"[CACHE] Error saving cache for {func_name}: {e}")
             
-            # Execute function
-            result = func(*args, **kwargs)
-            
-            # Remove old cache files for same params (to avoid accumulation)
-            _remove_old_cache_for_params(func_name, params_hash)
-            
-            # Save new cache file
-            unix_time = int(time.time())
-            cache_filename = f"{func_name}_{params_hash}_{unix_time}.pkl"
-            cache_path = CACHE_DIR / cache_filename
-            
-            try:
-                with open(cache_path, 'wb') as f:
-                    pickle.dump(result, f)
-            except Exception as e:
-                print(f"[CACHE] Error saving cache for {func_name}: {e}")
-            
-            # Cleanup expired cache files for this function (maintenance)
+            # Cleanup expired cache files for this function (maintenance, outside lock)
             try:
                 _cleanup_expired_cache(func_name, ttl)
             except Exception:

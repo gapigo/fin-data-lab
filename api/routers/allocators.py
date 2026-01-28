@@ -33,11 +33,12 @@ async def get_flow(
 async def get_performance(
     client: Optional[str] = Query(None),
     segment: Optional[str] = Query(None),
+    peer: Optional[str] = Query(None),
     window: int = Query(12)
 ) -> Dict[str, Any]:
     """Dados para aba Performance."""
     service = get_allocator_service()
-    return service.get_performance(client, segment, window)
+    return service.get_performance(client, segment, peer, window)
 
 
 @router.get("/allocation")

@@ -61,6 +61,11 @@ def get_carteira_df() -> pd.DataFrame:
             vl_merc_pos_final,
             peer
         FROM cvm.carteira
+        WHERE dt_comptc > CURRENT_DATE - INTERVAL '5 years'
+          AND peer IN ('Ações', 'Multimercado', 'Renda Fixa')
+          --AND cnpj_fundo NOT IN (SELECT DISTINCT cnpj_fundo FROM cvm.espelhos)
+          AND cliente <> gestor_cota
+          AND cliente IN ('BTG', 'XP', 'Bradesco', 'BB', 'Empiricus', 'Itaú', 'Santander')
     """
     df = db.read_sql(query)
     
@@ -92,6 +97,11 @@ def get_carteira_aggregated() -> pd.DataFrame:
             SUM(vl_merc_pos_final) as total_pos,
             COUNT(DISTINCT cnpj_fundo_cota) as num_fundos
         FROM cvm.carteira
+        WHERE dt_comptc > CURRENT_DATE - INTERVAL '5 years'
+          AND peer IN ('Ações', 'Multimercado', 'Renda Fixa')
+          AND cnpj_fundo NOT IN (SELECT DISTINCT cnpj_fundo FROM cvm.espelhos)
+          AND cliente <> gestor_cota
+          AND cliente IN ('BTG', 'XP', 'Bradesco', 'BB', 'Empiricus', 'Itaú', 'Santander')
         GROUP BY dt_comptc, cliente, cliente_segmentado, gestor_cota, peer
         ORDER BY dt_comptc, cliente
     """
@@ -113,11 +123,19 @@ def get_carteira_filters() -> dict:
     """
     db = PostgresConnector()
     
-    # Clients and segments
+    # Whitelist de clientes permitidos
+    allowed_clients = ('BTG', 'XP', 'Bradesco', 'BB', 'Empiricus', 'Itaú', 'Santander')
+    
+    # Clients and segments - com filtros restritivos
     sql = """
         SELECT DISTINCT cliente, cliente_segmentado 
         FROM cvm.carteira 
         WHERE cliente IS NOT NULL
+          AND dt_comptc > CURRENT_DATE - INTERVAL '5 years'
+          AND peer IN ('Ações', 'Multimercado', 'Renda Fixa')
+          AND cnpj_fundo NOT IN (SELECT DISTINCT cnpj_fundo FROM cvm.espelhos)
+          AND cliente <> gestor_cota
+          AND cliente IN ('BTG', 'XP', 'Bradesco', 'BB', 'Empiricus', 'Itaú', 'Santander')
         ORDER BY cliente, cliente_segmentado
     """
     df = db.read_sql(sql)
@@ -136,10 +154,8 @@ def get_carteira_filters() -> dict:
             if s not in segments_by_client[c]:
                 segments_by_client[c].append(s)
     
-    # Peers
-    sql_peers = "SELECT DISTINCT peer FROM cvm.carteira WHERE peer IS NOT NULL ORDER BY peer"
-    df_peers = db.read_sql(sql_peers)
-    peers = df_peers['peer'].tolist()
+    # Peers - apenas os 3 permitidos
+    peers = ['Ações', 'Multimercado', 'Renda Fixa']
     
     return {
         "clients": clients,
