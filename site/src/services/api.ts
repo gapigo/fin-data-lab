@@ -16,6 +16,12 @@ export interface FundDetail extends FundSearchResponse {
     auditor?: string;
     custodiante?: string;
     controlador?: string;
+    taxa_adm?: string;
+    taxa_perf?: string;
+    benchmark?: string;
+    condom?: string;
+    fundo_exclusivo?: string;
+    fundo_cotas?: string;
 }
 
 export interface QuotaData {
@@ -58,6 +64,62 @@ export interface FundSuggestion {
     cnpj_fundo: string;
 }
 
+// ============ NEW INTERFACES FOR DETAILED PORTFOLIO ============
+
+export interface AssetPosition {
+    nome: string;
+    valor: number;
+    percentual: number;
+    tipo?: string;
+    cnpj_emissor?: string;
+    dt_venc?: string;
+    codigo?: string;
+    extra?: Record<string, any>;
+}
+
+export interface PortfolioBlock {
+    tipo: string;
+    nome_display: string;
+    total_valor: number;
+    total_percentual: number;
+    ativos: AssetPosition[];
+}
+
+export interface PortfolioDetailed {
+    cnpj_fundo: string;
+    dt_comptc?: string;
+    vl_patrim_liq?: number;
+    blocos: PortfolioBlock[];
+    resumo: Record<string, number>;
+}
+
+export interface FundRelationship {
+    cnpj_fundo: string;
+    cnpj_relacionado: string;
+    nome_relacionado: string;
+    tipo_relacao: string;
+    valor?: number;
+    percentual?: number;
+}
+
+export interface FundStructure {
+    cnpj_fundo: string;
+    nome_fundo: string;
+    tipo?: string;
+    investe_em: FundRelationship[];
+    investido_por: FundRelationship[];
+    espelho_de?: string;
+}
+
+export interface TopAsset {
+    codigo?: string;
+    nome: string;
+    setor?: string;
+    valor: number;
+    percentual: number;
+    tipo: string;
+}
+
 const API_Base = "http://localhost:8000";
 
 /**
@@ -90,7 +152,6 @@ async function cachedFetch<T>(
 
 export const FundingService = {
     async suggestFunds(query: string): Promise<FundSuggestion[]> {
-        // Só cachear se a query tiver pelo menos 2 caracteres
         if (query.length < 2) {
             const params = new URLSearchParams();
             params.append("q", query);
@@ -167,6 +228,40 @@ export const FundingService = {
         });
     },
 
+    // ============ NEW API METHODS ============
+
+    async getPortfolioDetailed(cnpj: string): Promise<PortfolioDetailed> {
+        const cacheKey = generateCacheKey('fundPortfolio', cnpj);
+
+        return cachedFetch(cacheKey, 'fundHistory', async () => {
+            const res = await fetch(`${API_Base}/funds/${cnpj}/portfolio`);
+            if (!res.ok) throw new Error("Failed to get portfolio");
+            return res.json();
+        });
+    },
+
+    async getFundStructure(cnpj: string): Promise<FundStructure> {
+        const cacheKey = generateCacheKey('fundStructure', cnpj);
+
+        return cachedFetch(cacheKey, 'fundDetail', async () => {
+            const res = await fetch(`${API_Base}/funds/${cnpj}/structure`);
+            if (!res.ok) throw new Error("Failed to get fund structure");
+            return res.json();
+        });
+    },
+
+    async getTopAssets(cnpj: string, limit: number = 10): Promise<TopAsset[]> {
+        const cacheKey = generateCacheKey('fundTopAssets', cnpj, limit);
+
+        return cachedFetch(cacheKey, 'fundComposition', async () => {
+            const params = new URLSearchParams();
+            params.append("limit", limit.toString());
+            const res = await fetch(`${API_Base}/funds/${cnpj}/top-assets?${params.toString()}`);
+            if (!res.ok) throw new Error("Failed to get top assets");
+            return res.json();
+        });
+    },
+
     /**
      * Limpa todo o cache de API
      */
@@ -180,5 +275,107 @@ export const FundingService = {
      */
     async getCacheStats() {
         return cacheService.getStats();
+    },
+
+    // ============ PEER GROUPS MANAGEMENT ============
+
+    async getPeerGroups(): Promise<PeerGroup[]> {
+        const res = await fetch(`${API_Base}/peer-groups`);
+        if (!res.ok) throw new Error("Failed to get peer groups");
+        return res.json();
+    },
+
+    async createPeerGroup(name: string, description?: string, category?: string): Promise<PeerGroup> {
+        const res = await fetch(`${API_Base}/peer-groups`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description, category })
+        });
+        if (!res.ok) throw new Error("Failed to create peer group");
+        return res.json();
+    },
+
+    async getPeerGroupDetails(groupId: number): Promise<PeerGroupDetail> {
+        const res = await fetch(`${API_Base}/peer-groups/${groupId}`);
+        if (!res.ok) throw new Error("Failed to get peer group details");
+        return res.json();
+    },
+
+    async deletePeerGroup(groupId: number): Promise<boolean> {
+        const res = await fetch(`${API_Base}/peer-groups/${groupId}`, {
+            method: 'DELETE'
+        });
+        return res.ok;
+    },
+
+    async addFundToPeerGroup(groupId: number, fund: { cnpj: string, nickname?: string, peer_cat?: string, description?: string, comment?: string }): Promise<PeerFund> {
+        const res = await fetch(`${API_Base}/peer-groups/${groupId}/funds`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cnpj_fundo: fund.cnpj,
+                apelido: fund.nickname,
+                peer_cat: fund.peer_cat,
+                descricao: fund.description,
+                comentario: fund.comment
+            })
+        });
+        if (!res.ok) throw new Error("Failed to add fund to peer group");
+        return res.json();
+    },
+
+    async updateFundInPeerGroup(groupId: number, cnpj: string, data: { nickname?: string, peer_cat?: string, description?: string, comment?: string }): Promise<PeerFund> {
+        const res = await fetch(`${API_Base}/peer-groups/${groupId}/funds/${cnpj.replace(/\D/g, '')}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cnpj_fundo: cnpj, // Needed for validation? Check schema
+                apelido: data.nickname,
+                peer_cat: data.peer_cat,
+                descricao: data.description,
+                comentario: data.comment
+            })
+        });
+        if (!res.ok) throw new Error("Failed to update fund in peer group");
+        return res.json();
+    },
+
+    async removeFundFromPeerGroup(groupId: number, cnpj: string): Promise<boolean> {
+        const res = await fetch(`${API_Base}/peer-groups/${groupId}/funds/${cnpj.replace(/\D/g, '')}`, {
+            method: 'DELETE'
+        });
+        return res.ok;
     }
 };
+
+export interface PeerGroup {
+    id: number;
+    name: string;
+    description?: string;
+    category?: string;
+    created_at?: string;
+    fund_count?: number;
+}
+
+export interface PeerFund {
+    id: number;
+    group_id: number;
+    cnpj_fundo: string;
+    apelido?: string;
+    peer_cat?: string;
+    descricao?: string;
+    comentario?: string;
+    denom_social?: string; // Do join com cadastro
+    gestor?: string;
+    classe?: string;
+    sit?: string;
+    // Campos calculados ou extras:
+    pl?: number;
+    manager?: string; // alias para gestor
+    name?: string; // alias para denom_social
+    peer_id?: string; // mapping to frontend id
+}
+
+export interface PeerGroupDetail extends PeerGroup {
+    funds: PeerFund[];
+}

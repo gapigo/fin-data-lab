@@ -24,7 +24,7 @@ class PostgresConnector:
     def read_sql(self, query: str) -> pd.DataFrame:
         """Lê os dados e remove a coluna '__id' conforme sua instrução."""
         try:
-            with self.engine.connect() as conn:
+            with self.engine.begin() as conn:
                 df = pd.read_sql(text(query), conn)
                 # Conforme solicitado, removemos a coluna de controle interna
                 if "__id" in df.columns:

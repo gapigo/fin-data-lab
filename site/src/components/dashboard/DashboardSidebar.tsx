@@ -14,6 +14,9 @@ import {
   Zap,
   FlaskConical,
   Users2,
+  Home,
+  Database,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -28,25 +31,47 @@ interface NavGroup {
   label: string;
   color: string;
   items: NavItem[];
+  analyticsOnly?: boolean;  // Se true, só aparece quando SHOW_ANALYTICS_VIEWS = true
 }
 
-const navGroups: NavGroup[] = [
+// Groups principais (sempre visíveis)
+const mainNavGroups: NavGroup[] = [
+  {
+    id: 'home-group',
+    label: 'Início',
+    color: 'nav-group-1',
+    items: [
+      { id: 'home', label: 'Início', icon: Home },
+    ]
+  },
   {
     id: 'funds',
     label: 'Fundos',
-    color: 'nav-group-1',
+    color: 'nav-group-2',
     items: [
-      { id: 'view-fund', label: 'Visualizar fundo', icon: Target },
+      { id: 'fund-summary', label: 'Resumo Fundo', icon: LineChart },
       { id: 'fund-lab', label: 'Lab', icon: FlaskConical },
       { id: 'flagship-peer', label: 'Flagship Peer', icon: Users2 },
     ]
   },
   {
+    id: 'utilities',
+    label: 'Utilidades',
+    color: 'nav-group-4',
+    items: [
+      { id: 'cache-manager', label: 'Caching', icon: Database },
+    ]
+  },
+];
+
+// Groups de analytics (só visíveis quando showAnalytics = true)
+const analyticsNavGroups: NavGroup[] = [
+  {
     id: 'overview',
     label: 'Visão Geral',
     color: 'nav-group-1',
+    analyticsOnly: true,
     items: [
-      { id: 'home', label: 'Dashboard', icon: BarChart3 },
       { id: 'performance', label: 'Performance', icon: TrendingUp },
       { id: 'realtime', label: 'Tempo Real', icon: Activity },
     ],
@@ -55,6 +80,7 @@ const navGroups: NavGroup[] = [
     id: 'analytics',
     label: 'Analytics',
     color: 'nav-group-2',
+    analyticsOnly: true,
     items: [
       { id: 'users', label: 'Usuários', icon: Users },
       { id: 'traffic', label: 'Tráfego', icon: Globe },
@@ -65,6 +91,7 @@ const navGroups: NavGroup[] = [
     id: 'business',
     label: 'Negócios',
     color: 'nav-group-3',
+    analyticsOnly: true,
     items: [
       { id: 'revenue', label: 'Receita', icon: DollarSign },
       { id: 'sales', label: 'Vendas', icon: ShoppingCart },
@@ -75,6 +102,7 @@ const navGroups: NavGroup[] = [
     id: 'insights',
     label: 'Insights',
     color: 'nav-group-4',
+    analyticsOnly: true,
     items: [
       { id: 'trends', label: 'Tendências', icon: LineChart },
       { id: 'distribution', label: 'Distribuição', icon: PieChart },
@@ -87,13 +115,20 @@ interface DashboardSidebarProps {
   collapsed: boolean;
   activeView: string;
   onViewChange: (view: string) => void;
+  showAnalytics?: boolean;
 }
 
 export const DashboardSidebar = ({
   collapsed,
   activeView,
   onViewChange,
+  showAnalytics = false,
 }: DashboardSidebarProps) => {
+  // Combinar grupos baseado na flag showAnalytics
+  const navGroups = showAnalytics
+    ? [...mainNavGroups, ...analyticsNavGroups]
+    : mainNavGroups;
+
   return (
     <aside
       className={cn(
@@ -186,8 +221,8 @@ export const DashboardSidebar = ({
       {!collapsed && (
         <div className="p-4 border-t border-sidebar-border">
           <div className="glass-effect rounded-lg p-3">
-            <p className="text-xs text-muted-foreground">Última atualização</p>
-            <p className="text-sm font-medium">Há 2 minutos</p>
+            <p className="text-xs text-muted-foreground">Fin Data Lab</p>
+            <p className="text-sm font-medium">v1.0.0</p>
           </div>
         </div>
       )}
@@ -195,4 +230,4 @@ export const DashboardSidebar = ({
   );
 };
 
-export { navGroups };
+export { mainNavGroups as navGroups };
