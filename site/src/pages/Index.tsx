@@ -7,7 +7,7 @@ import FundDetails from './FundDetails';
 import FundLab from './FundLab';
 import FlagshipPeer from './FlagshipPeer';
 import CacheManager from './CacheManager';
-import Allocators from './Allocators';
+import Allocators from './AllocatorsIntelligence';
 import {
   HomeView,
   PerformanceView,

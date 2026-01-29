@@ -7,6 +7,7 @@ import Index from './pages/Index';
 import FundDetails from './pages/FundDetails';
 import FundLab from './pages/FundLab';
 import NotFound from './pages/NotFound';
+import AllocatorsIntelligence from './pages/AllocatorsIntelligence';
 
 const queryClient = new QueryClient();
 
@@ -19,6 +20,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/fund/:cnpj" element={<FundDetails />} />
+          <Route path="/allocators" element={<AllocatorsIntelligence />} />
           <Route path="/lab" element={<FundLab />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />

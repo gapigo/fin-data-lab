@@ -8,17 +8,19 @@ import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import time
 
+import sys
+import os
+
+# Ensure project root is in path for common imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
     from .service import DataService
+    # Try relative import first (module mode)
     from .services.allocators_service import allocators_service
     from common.cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
 except ImportError:
-    # Fallback for running as script from api directory
-    # We ensure path is correct for common
-    import sys
-    import os
-    sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+    # Fallback for script mode (absolute imports from root handled by sys.path above)
     from service import DataService
     from services.allocators_service import allocators_service
     from common.cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
@@ -382,8 +384,8 @@ def get_allocator_flow(
     peer: Optional[str] = None,
     window: int = 12
 ):
-    """Get flow and position data for allocators."""
-    return allocators_service.get_flow_data(client, segment, peer, window)
+    """Get flow and position data for allocators (Fluxo e Posição tab)."""
+    return allocators_service.get_flow_position_data(client, segment, peer, window)
 
 
 @app.get("/allocators/performance")
@@ -392,7 +394,7 @@ def get_allocator_performance(
     segment: Optional[str] = None,
     peer: Optional[str] = None
 ):
-    """Get performance data for allocators (metrics, scatter, table)."""
+    """Get performance data for allocators (Performance tab)."""
     return allocators_service.get_performance_data(client, segment, peer)
 
 
@@ -402,8 +404,9 @@ def get_allocator_allocation(
     segment: Optional[str] = None,
     peer: Optional[str] = None
 ):
-    """Get allocation data for allocators (evolution, snapshot, pie)."""
+    """Get allocation data for allocators (Alocação tab)."""
     return allocators_service.get_allocation_data(client, segment, peer)
+
 
 
 if __name__ == "__main__":
