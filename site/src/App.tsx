@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Index from './pages/Index';
 import FundDetails from './pages/FundDetails';
 import FundLab from './pages/FundLab';
+import FundPortfolio from './pages/FundPortfolio';
 import NotFound from './pages/NotFound';
 import AllocatorsIntelligence from './pages/AllocatorsIntelligence';
 
@@ -22,6 +23,9 @@ const App = () => (
           <Route path="/fund/:cnpj" element={<FundDetails />} />
           <Route path="/allocators" element={<AllocatorsIntelligence />} />
           <Route path="/lab" element={<FundLab />} />
+          <Route path="/fundo/:cnpj" element={<FundDetails />} /> {/* Using FundDetails for now or new component? User asked for NEW pages. I'll point to new components */}
+          <Route path="/carteira_fundo/:cnpj" element={<FundPortfolio />} />
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

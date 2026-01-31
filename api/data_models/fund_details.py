@@ -36,9 +36,11 @@ def get_fund_detail_data(cnpj: str) -> pd.DataFrame:
     # Usually data access expects valid inputs, but let's be safe.
     
     sql = f"""
-        SELECT * FROM cvm.cadastro 
-        WHERE cnpj_fundo = '{cnpj}' 
-        AND dt_fim IS NULL 
+        SELECT c.*, p.peer_grupo, p.peer_detalhado
+        FROM cvm.cadastro c
+        LEFT JOIN cvm.peer p ON c.cnpj_fundo = p.cnpj_fundo
+        WHERE c.cnpj_fundo = '{cnpj}' 
+        AND c.dt_fim IS NULL 
         LIMIT 1
     """
     return db.read_sql(sql)

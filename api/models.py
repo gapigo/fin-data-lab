@@ -23,6 +23,8 @@ class FundDetail(FundSearchResponse):
     condom: Optional[str] = None  # aberto ou fechado
     fundo_exclusivo: Optional[str] = None
     fundo_cotas: Optional[str] = None  # FIC ou não
+    peer_grupo: Optional[str] = None
+    peer_detalhado: Optional[str] = None
 
 class QuotaData(BaseModel):
     dt_comptc: date

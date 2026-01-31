@@ -78,6 +78,15 @@ class DataService:
 
     @temp()
     def get_fund_detail(self, cnpj: str) -> Optional[FundDetail]:
+        # Try static cache
+        cached = self._get_static_data(cnpj, "detail")
+        if cached:
+            # Reconstruct object
+            try:
+                return FundDetail(**cached)
+            except:
+                pass
+
         clean_cnpj = self._normalize_cnpj(cnpj)
         df = fund_details.get_fund_detail_data(clean_cnpj)
         
@@ -105,6 +114,8 @@ class DataService:
                 condom=self._val(row.get('condom')),
                 fundo_exclusivo=self._val(row.get('fundo_exclusivo')),
                 fundo_cotas=self._val(row.get('fundo_cotas')),
+                peer_grupo=self._val(row.get('peer_grupo')),
+                peer_detalhado=self._val(row.get('peer_detalhado'))
             )
             return detail
         except Exception as e:
@@ -114,6 +125,40 @@ class DataService:
     # ========================================================================
     # FUND HISTORY (COTAS)
     # ========================================================================
+
+    def _get_static_data(self, cnpj: str, type_key: str):
+        """Helper to try to load from static JSON cache."""
+        try:
+            clean_cnpj = self._normalize_cnpj(cnpj)
+            safe_cnpj = "".join(filter(str.isdigit, clean_cnpj))
+            # Adjust path relative to service.py location or project root
+            # Assuming running from api/ or root, let's look for api/static_cache
+            # better to use absolute based on file
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cache_file = os.path.join(base_dir, 'api', 'static_cache', f"profile_{safe_cnpj}.json")
+            
+            if os.path.exists(cache_file):
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get(type_key)
+        except Exception as e:
+            # print(f"Cache miss or error: {e}")
+            pass
+        return None
+    
+    def _get_static_portfolio(self, cnpj: str, type_key: str):
+        try:
+            clean_cnpj = self._normalize_cnpj(cnpj)
+            safe_cnpj = "".join(filter(str.isdigit, clean_cnpj))
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            cache_file = os.path.join(base_dir, 'api', 'static_cache', f"portfolio_{safe_cnpj}.json")
+            if os.path.exists(cache_file):
+                with open(cache_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get(type_key)
+        except:
+            pass
+        return None
 
     @temp()
     def get_fund_history(self, cnpj: str, start_date: date = None) -> List[QuotaData]:
@@ -143,6 +188,11 @@ class DataService:
 
     @temp()
     def get_fund_metrics(self, cnpj: str) -> Optional[dict]:
+        # Try static cache
+        cached = self._get_static_data(cnpj, "metrics")
+        if cached:
+             return cached
+
         clean_cnpj = self._normalize_cnpj(cnpj)
         
         # Get raw data from model
@@ -225,6 +275,11 @@ class DataService:
 
     @temp()
     def get_fund_composition(self, cnpj: str) -> Optional[dict]:
+        # Try static cache
+        cached = self._get_static_portfolio(cnpj, "composition")
+        if cached:
+             return cached
+
         clean_cnpj = self._normalize_cnpj(cnpj)
         
         # Check date
@@ -277,6 +332,11 @@ class DataService:
     @temp()
     def get_portfolio_detailed(self, cnpj: str) -> Optional[dict]:
         """Retorna a carteira completa do fundo com todos os ativos por bloco"""
+        # Try static cache
+        cached = self._get_static_portfolio(cnpj, "detailed")
+        if cached:
+             return cached
+
         clean_cnpj = self._normalize_cnpj(cnpj)
         
         df_date = portfolio.get_latest_composition_date(clean_cnpj)
@@ -431,6 +491,10 @@ class DataService:
 
     @temp()
     def get_fund_structure(self, cnpj: str) -> Optional[dict]:
+        cached = self._get_static_data(cnpj, "structure")
+        if cached:
+             return cached
+
         clean_cnpj = self._normalize_cnpj(cnpj)
         
         data = fund_details.get_fund_structure_data(clean_cnpj)

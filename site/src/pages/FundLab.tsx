@@ -69,11 +69,12 @@ const formatPercent = (val: number | undefined) => {
 
 interface FundLabProps {
     initialCnpj?: string | null;
+    defaultTab?: string;
 }
 
-const FundLab = ({ initialCnpj }: FundLabProps) => {
+const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
     const location = useLocation();
-    const [activeTab, setActiveTab] = useState("overview");
+    const [activeTab, setActiveTab] = useState(defaultTab);
     const [chatInput, setChatInput] = useState("");
     const [messages, setMessages] = useState(CHAT_MESSAGES_INITIAL);
     const [fundDesc, setFundDesc] = useState("");
