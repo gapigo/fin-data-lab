@@ -232,3 +232,4 @@ dist-ssr
 
 # Cache directory for @tmp decorator
 cache/*.pkl
+static_cache

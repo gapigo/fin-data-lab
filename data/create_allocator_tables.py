@@ -70,11 +70,11 @@ def run():
     # 4. fundos_kinea
     print("4. Creating fundos_kinea...")
     sql_4 = """
-    DROP TABLE IF EXISTS alocadores.fundos_kinea CASCADE;
-    CREATE TABLE alocadores.fundos_kinea AS
+    DROP TABLE IF EXISTS kinea.fundos CASCADE;
+    CREATE TABLE kinea.fundos AS
     SELECT cnpj_fundo, denom_social as nome_fundo
     FROM cvm.cadastro
-    WHERE gestor ILIKE '%KINEA%';
+    WHERE gestor ILIKE '%KINEA%' and dt_fim is null and sit <> 'CANCELADA';
     """
     db.execute_sql(sql_4)
     
