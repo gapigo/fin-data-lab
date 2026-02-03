@@ -61,6 +61,7 @@ const mainNavGroups: NavGroup[] = [
     color: 'nav-group-3',
     items: [
       { id: 'allocators', label: 'Alocadores', icon: Wallet },
+      { id: 'allocators-simplified', label: 'Simplificado', icon: BarChart3 },
     ]
   },
   {

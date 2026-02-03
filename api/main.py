@@ -18,11 +18,13 @@ try:
     from .service import DataService
     # Try relative import first (module mode)
     from .services.allocators_service import allocators_service
+    from .allocators_simplified.router import router as allocators_simplified_router
     from common.cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
 except ImportError:
     # Fallback for script mode (absolute imports from root handled by sys.path above)
     from service import DataService
     from services.allocators_service import allocators_service
+    from allocators_simplified.router import router as allocators_simplified_router
     from common.cache import cache, request_dedup, get_all_cache_info, delete_cache_file, clear_all_cache, CACHE_DIR
 
 app = FastAPI(title="Fin Data Lab API", description="API for CVM Fund Data")
@@ -38,6 +40,11 @@ app.add_middleware(
 
 service = DataService()
 executor = ThreadPoolExecutor(max_workers=10)
+
+# ============================================================================
+# ROUTERS - Alocadores Simplificado
+# ============================================================================
+app.include_router(allocators_simplified_router)
 
 
 # ============================================================================

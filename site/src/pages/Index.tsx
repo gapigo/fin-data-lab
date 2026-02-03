@@ -8,6 +8,7 @@ import FundLab from './FundLab';
 import FlagshipPeer from './FlagshipPeer';
 import CacheManager from './CacheManager';
 import Allocators from './AllocatorsIntelligence';
+import AllocatorsSimplified from './AllocatorsSimplified';
 import {
   HomeView,
   PerformanceView,
@@ -63,6 +64,11 @@ const viewConfigs: Record<string, ViewConfig> = {
   'allocators': {
     id: 'allocators',
     title: 'Alocadores',
+    tabs: []
+  },
+  'allocators-simplified': {
+    id: 'allocators-simplified',
+    title: 'Alocadores - Simplificado',
     tabs: []
   },
   // Analytics views (controladas por SHOW_ANALYTICS_VIEWS)
@@ -223,6 +229,8 @@ const Index = () => {
         return <CacheManager />;
       case 'allocators':
         return <Allocators />;
+      case 'allocators-simplified':
+        return <AllocatorsSimplified />;
 
       // Analytics views (só renderiza se SHOW_ANALYTICS_VIEWS = true)
       case 'performance':
@@ -257,6 +265,7 @@ const Index = () => {
     activeView !== 'fund-lab' &&
     activeView !== 'flagship-peer' &&
     activeView !== 'allocators' &&
+    activeView !== 'allocators-simplified' &&
     activeView !== 'cache-manager' &&
     activeView !== 'home';
 
