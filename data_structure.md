@@ -26,22 +26,37 @@ Fundo Cota (1) ──────────► (1) Peer
 
 ## Estrutura de Arquivos de Cache
 
-Os dados são pré-computados e salvos em JSON na pasta de cache:
+Os dados são pré-computados e salvos em JSON na pasta de cache.
+
+### Estratégia de Build do Cache
+
+**IMPORTANTE:** O build é otimizado para:
+1. Rodar TODAS as 6 queries SQL **uma única vez** (isso é o gargalo)
+2. Iterar pelos DataFrames **na memória** (rápido)
+3. Salvar JSONs **incrementalmente** com feedback visual
+
+Isso significa que mesmo que o processo demore, você verá arquivos sendo criados progressivamente.
+
+### Estrutura de Diretórios
 
 ```
-E:\Cache\Finlab\               # Pasta de cache (configurável)
-├── metadata.json              # Informações do último build
-├── menu.json                  # Opções disponíveis (filtros)
-├── flow_by_segment.json       # Fluxo agregado por segmento
+E:\Cache\Finlab\                      # Pasta de cache (configurável)
+├── metadata.json                     # Informações do último build
+├── menu.json                         # Opções disponíveis (filtros)
+├── flow_by_segment/
+│   └── {cliente}.json                # Fluxo por cliente
 ├── historical_position/
-│   └── {cliente}.json         # Posição histórica por cliente
+│   └── {cliente}.json                # Posição histórica por cliente
 ├── current_position/
-│   └── {cliente}.json         # Posição atual por cliente
+│   └── {cliente}__{segmento}.json    # Posição atual (SEGMENTADO)
 ├── fund_metrics/
-│   └── {cliente}.json         # Métricas por cliente
+│   └── {cliente}__{segmento}.json    # Métricas (SEGMENTADO)
 └── portfolio_assets/
-    └── {cliente}.json         # Ativos detalhados por cliente
+    ├── {cliente}__{segmento}__index.json  # Índice de CNPJs
+    └── {cliente}__{segmento}__{cnpj}.json # Ativos POR FUNDO (granular)
 ```
+
+**Nota:** A segmentação granular garante arquivos pequenos (~10KB-10MB cada) para carregamento rápido.
 
 ---
 
@@ -71,12 +86,13 @@ Contém opções disponíveis para filtros.
 
 ---
 
-### 2. flow_by_segment.json
+### 2. flow_by_segment/{cliente}.json
 
-Dados de fluxo agregados por cliente_segmentado.
+Dados de fluxo de um cliente específico.
 
 ```json
 {
+  "client": "Itaú",
   "data": [
     {
       "cliente": "Itaú",
@@ -90,6 +106,7 @@ Dados de fluxo agregados por cliente_segmentado.
       "fluxo_60m": 12000000.00
     }
   ],
+  "count": 45,
   "updated_at": "2025-01-30T10:00:00"
 }
 ```
@@ -129,13 +146,14 @@ Posição histórica de um cliente (5 anos de dados).
 
 ---
 
-### 4. current_position/{cliente}.json
+### 4. current_position/{cliente}__{segmento}.json
 
-Posição atual dos fundos na carteira.
+Posição atual dos fundos na carteira de um cliente+segmento.
 
 ```json
 {
   "client": "Itaú",
+  "segment": "Itaú Orion",
   "data": [
     {
       "dt_comptc": "2025-06-30",
@@ -160,13 +178,14 @@ Posição atual dos fundos na carteira.
 
 ---
 
-### 5. fund_metrics/{cliente}.json
+### 5. fund_metrics/{cliente}__{segmento}.json
 
-Métricas de performance dos fundos.
+Métricas de performance dos fundos de um cliente+segmento.
 
 ```json
 {
   "client": "Itaú",
+  "segment": "Itaú Orion",
   "data": [
     {
       "cliente": "Itaú",
@@ -204,18 +223,34 @@ Métricas de performance dos fundos.
 
 ---
 
-### 6. portfolio_assets/{cliente}.json
+### 6. portfolio_assets (Estrutura Granular)
 
-Ativos detalhados da carteira.
+Os ativos são organizados de forma granular para evitar arquivos grandes:
+
+#### 6a. Índice: {cliente}__{segmento}__index.json
 
 ```json
 {
   "client": "Itaú",
+  "segment": "Itaú Orion",
+  "cnpjs": ["12.345.678/0001-90", "23.456.789/0001-01"],
+  "count": 2,
+  "updated_at": "2025-01-30T10:00:00"
+}
+```
+
+#### 6b. Por Fundo: {cliente}__{segmento}__{cnpj}.json
+
+```json
+{
+  "client": "Itaú",
+  "segment": "Itaú Orion",
+  "cnpj_fundo": "12.345.678/0001-90",
   "data": [
     {
       "cliente": "Itaú",
       "cliente_segmentado": "Itaú Orion",
-      "cnpj_fundo": "11.111.111/0001-11",
+      "cnpj_fundo": "12.345.678/0001-90",
       "tp_aplic": "Renda Fixa",
       "tp_ativo": "Títulos Públicos",
       "nm_ativo": "LTN 01/01/2026",
@@ -224,7 +259,7 @@ Ativos detalhados da carteira.
       "vl_merc_pos_final": 25000000.00
     }
   ],
-  "count": 1500,
+  "count": 150,
   "updated_at": "2025-01-30T10:00:00"
 }
 ```
@@ -259,14 +294,18 @@ QUERIES = {
 }
 ```
 
-### Adicionando Novo Cliente
+### Modificando Limite de Fundos por Segmento
+
+Por padrão, apenas os **top 30 fundos** (por `vl_merc_pos_final`) são salvos por segmento.
+Isso evita arquivos de 300MB+ em fund_metrics.
 
 1. Edite `api/allocators_simplified/config.py`
-2. Adicione à lista `ALLOWED_CLIENTS`
+2. Altere `TOP_FUNDS_LIMIT`
 
 ```python
-ALLOWED_CLIENTS = ['BTG', 'XP', ..., 'NovoCliente']
+TOP_FUNDS_LIMIT = 30  # Aumentar ou diminuir conforme necessário
 ```
+
 
 ### Modificando String de Destaque
 

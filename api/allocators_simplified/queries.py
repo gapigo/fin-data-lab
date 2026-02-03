@@ -156,7 +156,7 @@ WHERE dt_comptc = '2025-06-30'
 # QUERY PARA MENU/OPÇÕES DISPONÍVEIS
 # ============================================================================
 
-# Lista de clientes e segmentos disponíveis
+# Lista de clientes e segmentos disponíveis (sem filtro - pega tudo)
 AVAILABLE_OPTIONS = """
 SELECT DISTINCT 
     cliente, 
@@ -165,7 +165,6 @@ SELECT DISTINCT
 FROM cvm.carteira
 WHERE cliente IS NOT NULL
   AND cliente_segmentado IS NOT NULL
-  AND cliente IN ('BTG', 'XP', 'Bradesco', 'BB', 'Empiricus', 'Itaú', 'Santander')
 ORDER BY cliente, cliente_segmentado
 """
 

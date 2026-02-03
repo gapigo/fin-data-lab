@@ -23,7 +23,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import {
     Loader2, ChevronDown, ChevronRight, TrendingUp, TrendingDown,
-    BarChart3, PieChart as PieChartIcon, Activity, Wallet
+    BarChart3, PieChart as PieChartIcon, Activity, Wallet, Eye, ExternalLink
 } from 'lucide-react';
 
 // ============================================================================
@@ -254,6 +254,224 @@ const FlowTab: React.FC<FlowTabProps> = ({ client, peers }) => {
 };
 
 // ============================================================================
+// COMPONENTE: MÉTRICAS POR JANELA - LAYOUT EMPILHADO (MONDAY-LIKE)
+// ============================================================================
+
+const ALL_WINDOWS = ['6M', '12M', '24M', '36M', '48M', '60M'];
+
+interface MetricsStackedChartsProps {
+    metricsCharts: Record<string, any[]>;
+    selectedMetric: string;
+    setSelectedMetric: (metric: string) => void;
+    METRIC_LABELS: Record<string, string>;
+}
+
+const MetricsStackedCharts: React.FC<MetricsStackedChartsProps> = ({
+    metricsCharts,
+    selectedMetric,
+    setSelectedMetric,
+    METRIC_LABELS
+}) => {
+    // Janelas visíveis (controladas pelo usuário)
+    const [visibleWindows, setVisibleWindows] = useState<Set<string>>(new Set(['6M', '12M', '24M', '36M']));
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+
+    const toggleWindow = (window: string) => {
+        const newVisible = new Set(visibleWindows);
+        if (newVisible.has(window)) {
+            if (newVisible.size > 1) { // Garantir pelo menos 1 visível
+                newVisible.delete(window);
+            }
+        } else {
+            newVisible.add(window);
+        }
+        setVisibleWindows(newVisible);
+    };
+
+    const hideWindow = (window: string) => {
+        if (visibleWindows.size > 1) {
+            const newVisible = new Set(visibleWindows);
+            newVisible.delete(window);
+            setVisibleWindows(newVisible);
+        }
+    };
+
+    // Ordenar janelas visíveis
+    const sortedVisibleWindows = ALL_WINDOWS.filter(w => visibleWindows.has(w));
+
+    // Calcular altura dinâmica baseada no número de itens
+    const getChartHeight = (dataLength: number) => {
+        // Cada barra: ~24px + margem, mínimo 200px
+        return Math.max(200, dataLength * 28 + 60);
+    };
+
+    return (
+        <Card className="bg-slate-900/50 border-slate-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <div>
+                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-emerald-400" />
+                        Métricas por Janela
+                    </CardTitle>
+                    <CardDescription>
+                        Roxo = fundos com destaque | Azul = demais fundos
+                    </CardDescription>
+                </div>
+                <div className="flex gap-3 items-center">
+                    {/* Selector de métrica */}
+                    <Select value={selectedMetric} onValueChange={setSelectedMetric}>
+                        <SelectTrigger className="w-[150px] bg-slate-950 border-slate-700 h-9">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="bg-slate-900 border-slate-700">
+                            {Object.entries(METRIC_LABELS).map(([key, label]) => (
+                                <SelectItem key={key} value={key}>{label}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    {/* Dropdown para selecionar janelas (Monday-like) */}
+                    <div className="relative">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-slate-950 border-slate-700 h-9 px-3"
+                            onClick={() => setDropdownOpen(!dropdownOpen)}
+                        >
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Janelas ({visibleWindows.size})
+                            <ChevronDown className={cn(
+                                "w-4 h-4 ml-2 transition-transform",
+                                dropdownOpen && "rotate-180"
+                            )} />
+                        </Button>
+
+                        {dropdownOpen && (
+                            <div className="absolute right-0 top-full mt-1 z-50 bg-slate-900 border border-slate-700 rounded-lg p-2 shadow-xl min-w-[160px]">
+                                {ALL_WINDOWS.map(w => (
+                                    <button
+                                        key={w}
+                                        onClick={() => toggleWindow(w)}
+                                        className={cn(
+                                            "w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors",
+                                            visibleWindows.has(w)
+                                                ? "bg-purple-500/20 text-purple-300"
+                                                : "hover:bg-slate-800 text-slate-400"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-4 h-4 rounded border-2 flex items-center justify-center",
+                                            visibleWindows.has(w)
+                                                ? "border-purple-500 bg-purple-500"
+                                                : "border-slate-600"
+                                        )}>
+                                            {visibleWindows.has(w) && (
+                                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                </svg>
+                                            )}
+                                        </div>
+                                        {w}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </CardHeader>
+            <CardContent className="space-y-0">
+                {/* Gráficos empilhados verticalmente */}
+                {sortedVisibleWindows.map((window, idx) => {
+                    const windowData = (metricsCharts[window] || []);
+                    const chartHeight = getChartHeight(windowData.length);
+
+                    // Calcular largura da barra baseado na densidade
+                    // 6M = muitas barras finas, 60M = poucas barras grossas
+                    const windowIndex = ALL_WINDOWS.indexOf(window);
+                    const barSize = Math.min(60, 15 + windowIndex * 8);
+
+                    return (
+                        <div
+                            key={window}
+                            className={cn(
+                                "bg-slate-950/50 rounded-lg border border-slate-800 overflow-hidden",
+                                idx > 0 && "mt-3"
+                            )}
+                        >
+                            {/* Header do gráfico com botão de esconder */}
+                            <div className="flex items-center justify-between px-4 py-2 bg-slate-900/50 border-b border-slate-800">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm font-bold text-purple-400">{window}</span>
+                                    <span className="text-xs text-slate-500">({windowData.length} fundos)</span>
+                                </div>
+                                <button
+                                    onClick={() => hideWindow(window)}
+                                    className="p-1 hover:bg-slate-800 rounded transition-colors group"
+                                    title="Esconder este gráfico"
+                                >
+                                    <svg
+                                        className="w-4 h-4 text-slate-500 group-hover:text-red-400 transition-colors"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            {/* Gráfico de barras verticais */}
+                            <div style={{ height: chartHeight }} className="px-2 py-3">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={windowData} margin={{ top: 10, right: 30, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={true} vertical={false} />
+                                        <XAxis
+                                            dataKey="name"
+                                            stroke="#64748b"
+                                            fontSize={9}
+                                            tickLine={false}
+                                            angle={-45}
+                                            textAnchor="end"
+                                            height={60}
+                                            interval={0}
+                                        />
+                                        <YAxis
+                                            stroke="#64748b"
+                                            fontSize={10}
+                                            tickLine={false}
+                                            tickFormatter={(v) => formatPercent(v)}
+                                            domain={['auto', 'auto']}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: '#1e293b', opacity: 0.3 }}
+                                            contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', fontSize: 11 }}
+                                            formatter={(val: number) => [formatPercent(val), METRIC_LABELS[selectedMetric]]}
+                                            labelFormatter={(label) => `${label}`}
+                                        />
+                                        <Bar
+                                            dataKey="value"
+                                            radius={[4, 4, 0, 0]}
+                                            barSize={barSize}
+                                        >
+                                            {windowData.map((entry: any, idx: number) => (
+                                                <Cell
+                                                    key={idx}
+                                                    fill={entry.is_highlighted ? COLORS.highlightInactive : COLORS.normal}
+                                                />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    );
+                })}
+            </CardContent>
+        </Card>
+    );
+};
+
+// ============================================================================
 // TELA 2: PERFORMANCE DA CARTEIRA
 // ============================================================================
 
@@ -261,9 +479,10 @@ interface PerformanceTabProps {
     client: string;
     segment: string;
     peers: string[];
+    onViewFundPortfolio?: (cnpj: string) => void;
 }
 
-const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers }) => {
+const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers, onViewFundPortfolio }) => {
     const [selectedMetric, setSelectedMetric] = useState('ret');
     const [selectedWindows, setSelectedWindows] = useState(['6M', '12M', '24M', '36M']);
     const [highlightedFund, setHighlightedFund] = useState<string | null>(null);
@@ -323,12 +542,21 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers 
                         Posição por Fundo
                     </CardTitle>
                     <CardDescription>
-                        Azul escuro = fundos com destaque (KINEA) | Azul claro = demais
+                        Clique em uma barra para ver a carteira do fundo | Azul escuro = KINEA
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="h-[400px]">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={positionData} margin={{ top: 20, right: 30 }}>
+                        <BarChart
+                            data={positionData}
+                            margin={{ top: 20, right: 30 }}
+                            onClick={(data) => {
+                                if (data?.activePayload?.[0]?.payload?.cnpj && onViewFundPortfolio) {
+                                    onViewFundPortfolio(data.activePayload[0].payload.cnpj);
+                                }
+                            }}
+                            style={{ cursor: onViewFundPortfolio ? 'pointer' : 'default' }}
+                        >
                             <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
                             <XAxis
                                 dataKey="name"
@@ -347,10 +575,12 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers 
                                 tickFormatter={(v) => formatValue(v)}
                             />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155' }}
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }}
+                                labelStyle={{ color: '#fff' }}
+                                itemStyle={{ color: '#fff' }}
                                 formatter={(val: number, name: string, props: any) => [
                                     formatCurrency(val),
-                                    props.payload.name
+                                    `${props.payload.name} - Clique para ver carteira`
                                 ]}
                             />
                             <Bar dataKey="value" radius={[4, 4, 0, 0]}>
@@ -363,61 +593,13 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers 
                 </CardContent>
             </Card>
 
-            {/* Gráfico 2: Métricas por Janela */}
-            <Card className="bg-slate-900/50 border-slate-800">
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                        <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
-                            <Activity className="w-5 h-5 text-emerald-400" />
-                            Métricas por Janela
-                        </CardTitle>
-                        <CardDescription>
-                            Verde = destaque + posição | Roxo = sem posição | Azul = outros
-                        </CardDescription>
-                    </div>
-                    <div className="flex gap-3">
-                        <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-                            <SelectTrigger className="w-[150px] bg-slate-950 border-slate-700">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-900 border-slate-700">
-                                {Object.entries(METRIC_LABELS).map(([key, label]) => (
-                                    <SelectItem key={key} value={key}>{label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {selectedWindows.map(window => {
-                            const windowData = (metricsCharts[window] || []).slice(0, 15);
-                            return (
-                                <div key={window} className="bg-slate-950 rounded-lg p-3 border border-slate-800">
-                                    <h4 className="text-sm font-medium text-slate-300 mb-3">{window}</h4>
-                                    <div className="h-[250px]">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart data={windowData} layout="vertical">
-                                                <XAxis type="number" fontSize={9} tickFormatter={(v) => formatPercent(v)} />
-                                                <YAxis type="category" dataKey="name" fontSize={8} width={80} tickLine={false} />
-                                                <Tooltip
-                                                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', fontSize: 11 }}
-                                                    formatter={(val: number) => [formatPercent(val), METRIC_LABELS[selectedMetric]]}
-                                                />
-                                                <Bar dataKey="value">
-                                                    {windowData.map((entry: any, idx: number) => (
-                                                        <Cell key={idx} fill={entry.color} />
-                                                    ))}
-                                                </Bar>
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Gráfico 2: Métricas por Janela - Layout Empilhado (Monday-like) */}
+            <MetricsStackedCharts
+                metricsCharts={metricsCharts}
+                selectedMetric={selectedMetric}
+                setSelectedMetric={setSelectedMetric}
+                METRIC_LABELS={METRIC_LABELS}
+            />
 
             {/* Gráfico 3: Boxplots */}
             <Card className="bg-slate-900/50 border-slate-800">
@@ -570,19 +752,24 @@ const CustomBoxPlotShape = ({ x, y, width, height, payload, color }: any) => {
 interface PortfolioTabProps {
     client: string;
     segment: string;
+    initialCnpj?: string | null;
+    onViewFundPortfolio?: (cnpj: string) => void;
 }
 
-const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment }) => {
-    const [viewMode, setViewMode] = useState<'segment' | 'cnpj'>('segment');
-    const [searchCnpj, setSearchCnpj] = useState('');
+const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnpj = null, onViewFundPortfolio }) => {
+    const [viewMode, setViewMode] = useState<'segment' | 'cnpj'>(initialCnpj ? 'cnpj' : 'segment');
+    const [searchCnpj, setSearchCnpj] = useState(initialCnpj || '');
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
+    // Limpar CNPJ para usar apenas números e caracteres de CNPJ
+    const cleanCnpj = searchCnpj.trim();
+
     const { data, isLoading } = useQuery({
-        queryKey: ['allocators-simple-portfolio', viewMode === 'segment' ? client : null, viewMode === 'segment' ? segment : null, viewMode === 'cnpj' ? searchCnpj : null],
+        queryKey: ['allocators-simple-portfolio', viewMode === 'segment' ? client : null, viewMode === 'segment' ? segment : null, viewMode === 'cnpj' ? cleanCnpj : null],
         queryFn: () => viewMode === 'segment'
             ? AllocatorsSimpleApi.getPortfolio(client, segment)
-            : AllocatorsSimpleApi.getPortfolio(undefined, undefined, searchCnpj),
-        enabled: viewMode === 'segment' ? (!!client && !!segment) : searchCnpj.length > 10
+            : AllocatorsSimpleApi.getPortfolio(undefined, undefined, cleanCnpj),
+        enabled: viewMode === 'segment' ? (!!client && !!segment) : cleanCnpj.length >= 14
     });
 
     const toggleGroup = (tp_aplic: string) => {
@@ -674,15 +861,17 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment }) => {
                                 outerRadius={150}
                                 paddingAngle={2}
                                 dataKey="value"
-                                label={({ name, percentage }) => `${name}: ${percentage?.toFixed(1)}%`}
-                                labelLine={{ stroke: '#64748b' }}
+                                label={({ percentage }) => percentage > 5 ? `${percentage?.toFixed(1)}%` : ''}
+                                labelLine={false}
                             >
                                 {pieData.map((entry: any, index: number) => (
                                     <Cell key={index} fill={entry.fill} />
                                 ))}
                             </Pie>
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155' }}
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#fff' }}
+                                labelStyle={{ color: '#fff' }}
+                                itemStyle={{ color: '#fff' }}
                                 formatter={(val: number) => formatCurrency(val)}
                             />
                             <Legend
@@ -776,6 +965,18 @@ const AllocatorsSimplified: React.FC = () => {
     const [selectedSegment, setSelectedSegment] = useState('');
     const [selectedPeers, setSelectedPeers] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState('fluxo');
+    const [selectedFundCnpj, setSelectedFundCnpj] = useState<string | null>(null);
+
+    // Handler para ver carteira de um fundo específico
+    const handleViewFundPortfolio = (cnpj: string) => {
+        setSelectedFundCnpj(cnpj);
+        setActiveTab('carteira');
+    };
+
+    // Handler para voltar ao modo normal
+    const handleClearFundView = () => {
+        setSelectedFundCnpj(null);
+    };
 
     // Carregar filtros
     const { data: filtersData, isLoading: loadingFilters } = useQuery({
@@ -906,11 +1107,16 @@ const AllocatorsSimplified: React.FC = () => {
                             client={selectedClient}
                             segment={selectedSegment}
                             peers={selectedPeers}
+                            onViewFundPortfolio={handleViewFundPortfolio}
                         />
                     </TabsContent>
 
                     <TabsContent value="carteira" className="mt-0 pb-10">
-                        <PortfolioTab client={selectedClient} segment={selectedSegment} />
+                        <PortfolioTab
+                            client={selectedClient}
+                            segment={selectedSegment}
+                            initialCnpj={selectedFundCnpj}
+                        />
                     </TabsContent>
                 </ScrollArea>
             </Tabs>
