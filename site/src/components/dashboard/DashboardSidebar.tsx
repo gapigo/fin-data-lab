@@ -1,143 +1,57 @@
-import {
-  BarChart3,
-  LineChart,
-  PieChart,
-  TrendingUp,
-  Users,
-  DollarSign,
-  ShoppingCart,
-  Target,
-  Activity,
-  Globe,
-  LucideProps,
-  Layers,
-  Zap,
-  FlaskConical,
-  Users2,
-  Home,
-  Database,
-  Settings,
-  Wallet,
-} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ViewModeSelector } from './ViewModeSelector';
+import {
+  getMenuGroupsByViewMode,
+  getDefaultViewMode,
+  saveViewMode,
+  ViewMode,
+  NavGroup,
+} from '@/config/menuConfig';
+import { useState, useEffect } from 'react';
 
-interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ComponentType<LucideProps>;
-}
-
-interface NavGroup {
-  id: string;
-  label: string;
-  color: string;
-  items: NavItem[];
-  analyticsOnly?: boolean;  // Se true, só aparece quando SHOW_ANALYTICS_VIEWS = true
-}
-
-// Groups principais (sempre visíveis)
-const mainNavGroups: NavGroup[] = [
-  {
-    id: 'home-group',
-    label: 'Início',
-    color: 'nav-group-1',
-    items: [
-      { id: 'home', label: 'Início', icon: Home },
-    ]
-  },
-  {
-    id: 'funds',
-    label: 'Fundos',
-    color: 'nav-group-2',
-    items: [
-      { id: 'fund-summary', label: 'Resumo Fundo', icon: LineChart },
-      { id: 'fund-lab', label: 'Lab', icon: FlaskConical },
-      { id: 'flagship-peer', label: 'Flagship Peer', icon: Users2 },
-    ]
-  },
-  {
-    id: 'allocators',
-    label: 'Alocadores',
-    color: 'nav-group-3',
-    items: [
-      { id: 'allocators', label: 'Alocadores', icon: Wallet },
-      { id: 'allocators-simplified', label: 'Simplificado', icon: BarChart3 },
-    ]
-  },
-  {
-    id: 'utilities',
-    label: 'Utilidades',
-    color: 'nav-group-4',
-    items: [
-      { id: 'cache-manager', label: 'Caching', icon: Database },
-    ]
-  },
-];
-
-// Groups de analytics (só visíveis quando showAnalytics = true)
-const analyticsNavGroups: NavGroup[] = [
-  {
-    id: 'overview',
-    label: 'Visão Geral',
-    color: 'nav-group-1',
-    analyticsOnly: true,
-    items: [
-      { id: 'performance', label: 'Performance', icon: TrendingUp },
-      { id: 'realtime', label: 'Tempo Real', icon: Activity },
-    ],
-  },
-  {
-    id: 'analytics',
-    label: 'Analytics',
-    color: 'nav-group-2',
-    analyticsOnly: true,
-    items: [
-      { id: 'users', label: 'Usuários', icon: Users },
-      { id: 'traffic', label: 'Tráfego', icon: Globe },
-      { id: 'engagement', label: 'Engajamento', icon: Target },
-    ],
-  },
-  {
-    id: 'business',
-    label: 'Negócios',
-    color: 'nav-group-3',
-    analyticsOnly: true,
-    items: [
-      { id: 'revenue', label: 'Receita', icon: DollarSign },
-      { id: 'sales', label: 'Vendas', icon: ShoppingCart },
-      { id: 'products', label: 'Produtos', icon: Layers },
-    ],
-  },
-  {
-    id: 'insights',
-    label: 'Insights',
-    color: 'nav-group-4',
-    analyticsOnly: true,
-    items: [
-      { id: 'trends', label: 'Tendências', icon: LineChart },
-      { id: 'distribution', label: 'Distribuição', icon: PieChart },
-      { id: 'predictions', label: 'Previsões', icon: Zap },
-    ],
-  },
-];
+// ============================================================================
+// INTERFACES (mantidas para compatibilidade)
+// ============================================================================
 
 interface DashboardSidebarProps {
   collapsed: boolean;
   activeView: string;
   onViewChange: (view: string) => void;
   showAnalytics?: boolean;
+  viewMode?: ViewMode;
+  onViewModeChange?: (viewMode: ViewMode) => void;
 }
+
+// ============================================================================
+// COMPONENTE PRINCIPAL
+// ============================================================================
 
 export const DashboardSidebar = ({
   collapsed,
   activeView,
   onViewChange,
   showAnalytics = false,
+  viewMode: externalViewMode,
+  onViewModeChange,
 }: DashboardSidebarProps) => {
-  // Combinar grupos baseado na flag showAnalytics
-  const navGroups = showAnalytics
-    ? [...mainNavGroups, ...analyticsNavGroups]
-    : mainNavGroups;
+  // Estado interno para o modo de visualização (se não for controlado externamente)
+  const [internalViewMode, setInternalViewMode] = useState<ViewMode>(getDefaultViewMode);
+
+  // Usar modo externo se fornecido, caso contrário usar interno
+  const viewMode = externalViewMode ?? internalViewMode;
+
+  // Handler para mudança de modo
+  const handleViewModeChange = (newMode: ViewMode) => {
+    saveViewMode(newMode);
+    if (onViewModeChange) {
+      onViewModeChange(newMode);
+    } else {
+      setInternalViewMode(newMode);
+    }
+  };
+
+  // Obter grupos de navegação baseado no modo atual
+  const navGroups = getMenuGroupsByViewMode(viewMode, showAnalytics);
 
   return (
     <aside
@@ -156,7 +70,7 @@ export const DashboardSidebar = ({
             )}
 
             <div className="space-y-1">
-              {group.items.map((item) => {
+              {group.items.filter(item => !item.hidden).map((item) => {
                 const isActive = activeView === item.id;
                 const Icon = item.icon;
 
@@ -228,8 +142,21 @@ export const DashboardSidebar = ({
         ))}
       </nav>
 
+      {/* SELETOR DE MODO DE VISUALIZAÇÃO */}
+      <div className={cn(
+        "border-t border-sidebar-border",
+        collapsed ? "p-2" : "p-4"
+      )}>
+        <ViewModeSelector
+          currentViewMode={viewMode}
+          onViewModeChange={handleViewModeChange}
+          collapsed={collapsed}
+        />
+      </div>
+
+      {/* VERSÃO */}
       {!collapsed && (
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="px-4 pb-4">
           <div className="glass-effect rounded-lg p-3">
             <p className="text-xs text-muted-foreground">Fin Data Lab</p>
             <p className="text-sm font-medium">v1.0.0</p>
@@ -240,4 +167,5 @@ export const DashboardSidebar = ({
   );
 };
 
-export { mainNavGroups as navGroups };
+// Exportação para compatibilidade com código existente
+export { getMenuGroupsByViewMode };
