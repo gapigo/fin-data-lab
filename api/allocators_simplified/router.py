@@ -12,6 +12,7 @@ Endpoints:
 
 from fastapi import APIRouter, Query, HTTPException, BackgroundTasks
 from typing import Optional, List
+import pandas as pd
 
 from .service import get_service
 from .data_cache import get_cache
@@ -179,6 +180,60 @@ def get_complete_portfolio(
     )
     
     return result
+
+
+@router.get("/movimentacao")
+def get_movimentacao(
+    client: str = Query(..., description="Cliente selecionado"),
+    segment: str = Query(..., description="Cliente segmentado"),
+):
+    """
+    Carteira > Movimentação - Dados MOCK.
+    
+    Retorna TODOS os períodos de uma vez (1M a 60M).
+    O cliente não precisa recarregar ao trocar período.
+    
+    Response:
+    {
+        "barras": {"1M": [...], "3M": [...], ...},
+        "scatter": {"1M": [...], "3M": [...], ...},
+        "gestores": [...],
+        "periodos": ["1M", "3M", ...],
+        "gestor_comparado_default": "Kinea"
+    }
+    """
+    from .dataframes import _generate_mock_movimentacao
+    
+    result = _generate_mock_movimentacao(client=client, segment=segment)
+    return result
+
+
+@router.get("/cotas-posicao")
+def get_cotas_posicao(
+    client: str = Query(..., description="Cliente selecionado"),
+    segment: str = Query(..., description="Cliente segmentado"),
+):
+    """
+    Carteira > Completa - Gráfico de colunas azul decrescente.
+    Posição em cotas de fundos da última carteira aberta.
+    """
+    from .dataframes import get_cotas_fundos_posicao
+    
+    df = get_cotas_fundos_posicao(client=client, segment=segment)
+    
+    if df.empty:
+        return {"data": []}
+    
+    result = []
+    for _, row in df.iterrows():
+        result.append({
+            'cnpj': row.get('cnpj_fundo_cota', ''),
+            'name': str(row.get('nm_fundo_cota', ''))[:50],
+            'gestor': str(row.get('gestor_cota', '')),
+            'value': float(row['vl_merc_pos_final']) if pd.notnull(row['vl_merc_pos_final']) else 0
+        })
+    
+    return {"data": result}
 
 
 @router.get("/cache-status")

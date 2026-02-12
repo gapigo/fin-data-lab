@@ -1,9 +1,11 @@
 /**
- * Alocadores Simplificado - Dashboard de alocadores com 3 telas.
+ * Distribuição - Dashboard de alocadores reestruturado.
  * 
- * Tela 1: Fluxo do Cliente
- * Tela 2: Performance da Carteira
- * Tela 3: Carteira Completa
+ * Tab 1: Fluxo do Cliente (barras + linha posição histórica)
+ * Tab 2: Carteira
+ *   - Sub-tab Performance (posição, métricas, boxplots)
+ *   - Sub-tab Completa (cotas azul, donut, tabela)
+ *   - Sub-tab Movimentação (barras empilhadas + scatter plot - dados mock)
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -11,7 +13,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
     BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend,
-    ComposedChart
+    ComposedChart, ScatterChart, Scatter, ZAxis, ReferenceLine
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -103,6 +105,18 @@ const AllocatorsSimpleApi = {
         if (segment) params.append('segment', segment);
         if (cnpj) params.append('cnpj', cnpj);
         const res = await fetch(`${API_BASE}/allocators-simple/portfolio?${params}`);
+        return res.json();
+    },
+
+    getMovimentacao: async (client: string, segment: string) => {
+        const params = new URLSearchParams({ client, segment });
+        const res = await fetch(`${API_BASE}/allocators-simple/movimentacao?${params}`);
+        return res.json();
+    },
+
+    getCotasPosicao: async (client: string, segment: string) => {
+        const params = new URLSearchParams({ client, segment });
+        const res = await fetch(`${API_BASE}/allocators-simple/cotas-posicao?${params}`);
         return res.json();
     }
 };
@@ -746,7 +760,7 @@ const CustomBoxPlotShape = ({ x, y, width, height, payload, color }: any) => {
 };
 
 // ============================================================================
-// TELA 3: CARTEIRA COMPLETA
+// TELA 3: CARTEIRA COMPLETA (com gráfico de colunas azul no topo)
 // ============================================================================
 
 interface PortfolioTabProps {
@@ -761,7 +775,6 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
     const [searchCnpj, setSearchCnpj] = useState(initialCnpj || '');
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
-    // Limpar CNPJ para usar apenas números e caracteres de CNPJ
     const cleanCnpj = searchCnpj.trim();
 
     const { data, isLoading } = useQuery({
@@ -770,6 +783,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
             ? AllocatorsSimpleApi.getPortfolio(client, segment)
             : AllocatorsSimpleApi.getPortfolio(undefined, undefined, cleanCnpj),
         enabled: viewMode === 'segment' ? (!!client && !!segment) : cleanCnpj.length >= 14
+    });
+
+    // Gráfico de colunas azul decrescente - cotas de fundos  
+    const { data: cotasData, isLoading: loadingCotas } = useQuery({
+        queryKey: ['allocators-simple-cotas-posicao', client, segment],
+        queryFn: () => AllocatorsSimpleApi.getCotasPosicao(client, segment),
+        enabled: !!client && !!segment && viewMode === 'segment'
     });
 
     const toggleGroup = (tp_aplic: string) => {
@@ -793,8 +813,8 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
     const donutData = data?.donut_chart?.children || [];
     const tableData = data?.table_data || [];
     const totalValue = data?.total_value || 0;
+    const cotasList = cotasData?.data || [];
 
-    // Transform donut data for Recharts
     const pieData = donutData.map((item: any, i: number) => ({
         name: item.name,
         value: item.value,
@@ -807,6 +827,55 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
 
     return (
         <div className="space-y-8">
+            {/* Gráfico de Colunas Azul Decrescente - Cotas de Fundos */}
+            {viewMode === 'segment' && cotasList.length > 0 && (
+                <Card className="bg-slate-900/50 border-slate-800">
+                    <CardHeader>
+                        <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-blue-400" />
+                            Posição em Cotas de Fundos
+                        </CardTitle>
+                        <CardDescription>
+                            Última carteira CVM - Ordenado decrescente por posição
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[400px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={cotasList} margin={{ top: 20, right: 30 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                                <XAxis
+                                    dataKey="name"
+                                    stroke="#64748b"
+                                    fontSize={9}
+                                    tickLine={false}
+                                    angle={-45}
+                                    textAnchor="end"
+                                    height={100}
+                                    interval={0}
+                                />
+                                <YAxis
+                                    stroke="#64748b"
+                                    fontSize={11}
+                                    tickLine={false}
+                                    tickFormatter={(v) => formatValue(v)}
+                                />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b' }}
+                                    labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
+                                    itemStyle={{ color: '#3b82f6' }}
+                                    formatter={(val: number) => [formatCurrency(val), 'Posição']}
+                                />
+                                <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                    {cotasList.map((_: any, index: number) => (
+                                        <Cell key={index} fill="#3b82f6" />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Seletor de modo */}
             <Card className="bg-slate-900/50 border-slate-800">
                 <CardContent className="py-4">
@@ -906,7 +975,6 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
                         <TableBody>
                             {tableData.map((group: any) => (
                                 <React.Fragment key={group.tp_aplic}>
-                                    {/* Linha do grupo */}
                                     <TableRow
                                         className="border-slate-800 hover:bg-slate-800/30 cursor-pointer"
                                         onClick={() => toggleGroup(group.tp_aplic)}
@@ -931,7 +999,6 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
                                         </TableCell>
                                     </TableRow>
 
-                                    {/* Linhas de itens (expandidas) */}
                                     {expandedGroups.has(group.tp_aplic) && group.items?.map((item: any, idx: number) => (
                                         <TableRow key={idx} className="border-slate-800 hover:bg-slate-800/20 bg-slate-950/30">
                                             <TableCell></TableCell>
@@ -957,7 +1024,250 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
 };
 
 // ============================================================================
-// COMPONENTE PRINCIPAL
+// TELA 4: MOVIMENTAÇÃO (Barras empilhadas + Scatter plot)
+// ============================================================================
+
+const SCATTER_COLORS = [
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#06b6d4',
+    '#a855f7', '#22c55e', '#e11d48', '#0ea5e9', '#d97706'
+];
+
+interface MovimentacaoTabProps {
+    client: string;
+    segment: string;
+}
+
+const MovimentacaoTab: React.FC<MovimentacaoTabProps> = ({ client, segment }) => {
+    const [selectedPeriodo, setSelectedPeriodo] = useState('12M');
+
+    // Carrega TUDO de uma vez - nunca recarrega ao mudar período
+    const { data, isLoading } = useQuery({
+        queryKey: ['allocators-simple-movimentacao', client, segment],
+        queryFn: () => AllocatorsSimpleApi.getMovimentacao(client, segment),
+        enabled: !!client && !!segment,
+        staleTime: Infinity
+    });
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-96">
+                <Loader2 className="animate-spin text-emerald-500 w-10 h-10" />
+            </div>
+        );
+    }
+
+    if (!data) {
+        return <div className="text-center text-slate-500 py-20">Sem dados de movimentação</div>;
+    }
+
+    const periodos = data.periodos || [];
+    const gestores = data.gestores || [];
+    const barrasData = data.barras?.[selectedPeriodo] || [];
+    const scatterData = data.scatter?.[selectedPeriodo] || [];
+    const gestorComparado = data.gestor_comparado_default || '';
+
+    // Custom tooltip para scatter
+    const ScatterTooltipContent = ({ active, payload }: any) => {
+        if (!active || !payload?.[0]) return null;
+        const d = payload[0].payload;
+        return (
+            <div className="bg-white border border-slate-300 p-3 rounded-lg shadow-lg text-sm min-w-[240px]">
+                <p className="font-bold text-slate-800 text-base mb-2 border-b pb-2">{d.gestor}</p>
+                <div className="space-y-1.5">
+                    <div className="flex justify-between">
+                        <span className="text-slate-600">Recebido pelo Cliente:</span>
+                        <span className="font-semibold text-slate-800">{formatCurrency(d.valor_cliente)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-slate-600">Recebido ({gestorComparado}):</span>
+                        <span className="font-semibold text-blue-600">{formatCurrency(d.valor_gestor_comparado)}</span>
+                    </div>
+                    <div className="border-t pt-1.5 mt-1.5">
+                        <div className="flex justify-between">
+                            <span className="text-slate-600">Mov. % do Gestor:</span>
+                            <span className={cn("font-bold", d.mov_pct_gestor >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                                {(d.mov_pct_gestor * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-slate-600">CL % Cliente:</span>
+                            <span className={cn("font-bold", d.cl_pct_cliente >= 0 ? 'text-emerald-600' : 'text-red-600')}>
+                                {(d.cl_pct_cliente * 100).toFixed(1)}%
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="space-y-8">
+            {/* Seletor de período */}
+            <div className="flex items-center gap-4">
+                <span className="text-sm text-slate-400">Período:</span>
+                <div className="flex gap-1 bg-slate-950 p-1 rounded-md border border-slate-800">
+                    {periodos.map((p: string) => (
+                        <button
+                            key={p}
+                            onClick={() => setSelectedPeriodo(p)}
+                            className={cn(
+                                "px-3 py-1.5 text-xs rounded transition-all font-medium",
+                                selectedPeriodo === p
+                                    ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
+                                    : "text-slate-500 hover:text-slate-300"
+                            )}
+                        >
+                            {p}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Gráfico de Barras Empilhadas - Movimentação mensal por gestor */}
+            <Card className="bg-slate-900/50 border-slate-800">
+                <CardHeader>
+                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                        <BarChart3 className="w-5 h-5 text-blue-400" />
+                        Movimentação Mensal por Gestor
+                    </CardTitle>
+                    <CardDescription>
+                        Fluxo mensal de movimentação por gestor - Período: {selectedPeriodo}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[450px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={barrasData} margin={{ top: 20, right: 30, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                            <XAxis
+                                dataKey="month"
+                                stroke="#64748b"
+                                fontSize={11}
+                                tickLine={false}
+                            />
+                            <YAxis
+                                stroke="#64748b"
+                                fontSize={10}
+                                tickLine={false}
+                                tickFormatter={(v) => formatValue(v)}
+                            />
+                            <Tooltip
+                                contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#1e293b', maxHeight: '300px', overflow: 'auto' }}
+                                labelStyle={{ color: '#1e293b', fontWeight: 'bold' }}
+                                formatter={(val: number, name: string) => [formatCurrency(val), name]}
+                            />
+                            <Legend
+                                wrapperStyle={{ fontSize: 10 }}
+                                iconSize={8}
+                            />
+                            {gestores.slice(0, 10).map((gestor: string, i: number) => (
+                                <Bar
+                                    key={gestor}
+                                    dataKey={gestor}
+                                    stackId="a"
+                                    fill={SCATTER_COLORS[i % SCATTER_COLORS.length]}
+                                    radius={i === gestores.length - 1 ? [2, 2, 0, 0] : [0, 0, 0, 0]}
+                                />
+                            ))}
+                        </BarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+
+            {/* Scatter Plot - CL vs Crescimento */}
+            <Card className="bg-slate-900/50 border-slate-800">
+                <CardHeader>
+                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-emerald-400" />
+                        Distribuição de Movimentação por Gestor
+                    </CardTitle>
+                    <CardDescription>
+                        X = CL % vs posição inicial do gestor | Y = Alocação % no gestor · Travado -100% a 100%
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="h-[500px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 20, right: 40, bottom: 30, left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                            <XAxis
+                                type="number"
+                                dataKey="x"
+                                name="CL %"
+                                stroke="#64748b"
+                                fontSize={10}
+                                tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                                label={{ value: 'CL % vs Posição Inicial', position: 'bottom', offset: 10, fill: '#94a3b8', fontSize: 11 }}
+                            />
+                            <YAxis
+                                type="number"
+                                dataKey="y"
+                                name="Alocação %"
+                                stroke="#64748b"
+                                fontSize={10}
+                                domain={[-1, 1]}
+                                tickFormatter={(v) => `${(v * 100).toFixed(0)}%`}
+                                label={{ value: 'Alocação % no Gestor', angle: -90, position: 'insideLeft', fill: '#94a3b8', fontSize: 11 }}
+                            />
+                            <ZAxis dataKey="pos_inicial" range={[60, 400]} name="Posição Inicial" />
+                            <ReferenceLine y={0} stroke="#475569" strokeDasharray="6 3" />
+                            <ReferenceLine x={0} stroke="#475569" strokeDasharray="6 3" />
+                            <Tooltip content={<ScatterTooltipContent />} />
+                            <Scatter
+                                data={scatterData}
+                                fill="#3b82f6"
+                                shape={(props: any) => {
+                                    const { cx, cy, payload } = props;
+                                    const idx = gestores.indexOf(payload.gestor);
+                                    const color = SCATTER_COLORS[idx % SCATTER_COLORS.length];
+                                    const isHighlight = payload?.gestor?.toLowerCase().includes('kinea');
+                                    return (
+                                        <g>
+                                            <circle
+                                                cx={cx}
+                                                cy={cy}
+                                                r={isHighlight ? 10 : 7}
+                                                fill={color}
+                                                fillOpacity={0.8}
+                                                stroke={isHighlight ? '#fff' : color}
+                                                strokeWidth={isHighlight ? 3 : 1}
+                                            />
+                                            {isHighlight && (
+                                                <text x={cx} y={cy - 14} textAnchor="middle" fill="#fbbf24" fontSize={10} fontWeight="bold">
+                                                    {payload.gestor}
+                                                </text>
+                                            )}
+                                        </g>
+                                    );
+                                }}
+                            />
+                        </ScatterChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+
+            {/* Legenda dos gestores */}
+            <Card className="bg-slate-900/50 border-slate-800">
+                <CardContent className="py-4">
+                    <div className="flex flex-wrap gap-3">
+                        {gestores.slice(0, 15).map((gestor: string, i: number) => (
+                            <div key={gestor} className="flex items-center gap-1.5">
+                                <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: SCATTER_COLORS[i % SCATTER_COLORS.length] }}
+                                />
+                                <span className="text-xs text-slate-400">{gestor}</span>
+                            </div>
+                        ))}
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+};
+
+// ============================================================================
+// COMPONENTE PRINCIPAL - Reestruturado
 // ============================================================================
 
 const AllocatorsSimplified: React.FC = () => {
@@ -965,17 +1275,14 @@ const AllocatorsSimplified: React.FC = () => {
     const [selectedSegment, setSelectedSegment] = useState('');
     const [selectedPeers, setSelectedPeers] = useState<string[]>([]);
     const [activeTab, setActiveTab] = useState('fluxo');
+    const [carteiraSubTab, setCarteiraSubTab] = useState('performance');
     const [selectedFundCnpj, setSelectedFundCnpj] = useState<string | null>(null);
 
     // Handler para ver carteira de um fundo específico
     const handleViewFundPortfolio = (cnpj: string) => {
         setSelectedFundCnpj(cnpj);
         setActiveTab('carteira');
-    };
-
-    // Handler para voltar ao modo normal
-    const handleClearFundView = () => {
-        setSelectedFundCnpj(null);
+        setCarteiraSubTab('completa');
     };
 
     // Carregar filtros
@@ -1019,10 +1326,10 @@ const AllocatorsSimplified: React.FC = () => {
                 <div>
                     <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent flex items-center gap-2">
                         <Wallet className="w-8 h-8 text-purple-500" />
-                        Alocadores - Simplificado
+                        Distribuição
                     </h1>
                     <p className="text-slate-500 text-sm mt-1">
-                        Dashboard otimizado com cache JSON pré-computado
+                        Análise de alocadores e movimentação de carteira
                     </p>
                 </div>
 
@@ -1051,7 +1358,7 @@ const AllocatorsSimplified: React.FC = () => {
                         </SelectContent>
                     </Select>
 
-                    {/* Peers (Multi-select simple) */}
+                    {/* Peers */}
                     <Select
                         value={selectedPeers.join(',') || 'all'}
                         onValueChange={(v) => setSelectedPeers(v === 'all' ? [] : [v])}
@@ -1069,7 +1376,7 @@ const AllocatorsSimplified: React.FC = () => {
                 </div>
             </div>
 
-            {/* Tabs */}
+            {/* Tabs principais: Fluxo do Cliente | Carteira */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                     <TabsList className="bg-transparent p-0 w-fit">
@@ -1081,42 +1388,72 @@ const AllocatorsSimplified: React.FC = () => {
                             Fluxo do Cliente
                         </TabsTrigger>
                         <TabsTrigger
-                            value="performance"
+                            value="carteira"
                             className="rounded-none border-b-2 border-transparent data-[state=active]:border-blue-500 data-[state=active]:bg-transparent data-[state=active]:text-blue-400 px-6"
                         >
-                            <Activity className="w-4 h-4 mr-2" />
-                            Performance
-                        </TabsTrigger>
-                        <TabsTrigger
-                            value="carteira"
-                            className="rounded-none border-b-2 border-transparent data-[state=active]:border-purple-500 data-[state=active]:bg-transparent data-[state=active]:text-purple-400 px-6"
-                        >
-                            <PieChartIcon className="w-4 h-4 mr-2" />
-                            Carteira Completa
+                            <Wallet className="w-4 h-4 mr-2" />
+                            Carteira
                         </TabsTrigger>
                     </TabsList>
                 </div>
 
                 <ScrollArea className="flex-1 -mr-4 pr-4">
+                    {/* Tab Fluxo do Cliente */}
                     <TabsContent value="fluxo" className="mt-0 pb-10">
                         <FlowTab client={selectedClient} peers={selectedPeers} />
                     </TabsContent>
 
-                    <TabsContent value="performance" className="mt-0 pb-10">
-                        <PerformanceTab
-                            client={selectedClient}
-                            segment={selectedSegment}
-                            peers={selectedPeers}
-                            onViewFundPortfolio={handleViewFundPortfolio}
-                        />
-                    </TabsContent>
-
+                    {/* Tab Carteira - com sub-tabs: Performance, Completa, Movimentação */}
                     <TabsContent value="carteira" className="mt-0 pb-10">
-                        <PortfolioTab
-                            client={selectedClient}
-                            segment={selectedSegment}
-                            initialCnpj={selectedFundCnpj}
-                        />
+                        <div className="space-y-6">
+                            {/* Sub-tab selector */}
+                            <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 w-fit">
+                                {[
+                                    { id: 'performance', label: 'Performance', icon: Activity },
+                                    { id: 'completa', label: 'Completa', icon: PieChartIcon },
+                                    { id: 'movimentacao', label: 'Movimentação', icon: BarChart3 },
+                                ].map(({ id, label, icon: Icon }) => (
+                                    <button
+                                        key={id}
+                                        onClick={() => setCarteiraSubTab(id)}
+                                        className={cn(
+                                            "flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all",
+                                            carteiraSubTab === id
+                                                ? "bg-slate-800 text-white shadow-md font-medium"
+                                                : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
+                                        )}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Sub-tab content */}
+                            {carteiraSubTab === 'performance' && (
+                                <PerformanceTab
+                                    client={selectedClient}
+                                    segment={selectedSegment}
+                                    peers={selectedPeers}
+                                    onViewFundPortfolio={handleViewFundPortfolio}
+                                />
+                            )}
+
+                            {carteiraSubTab === 'completa' && (
+                                <PortfolioTab
+                                    client={selectedClient}
+                                    segment={selectedSegment}
+                                    initialCnpj={selectedFundCnpj}
+                                />
+                            )}
+
+                            {carteiraSubTab === 'movimentacao' && (
+                                <MovimentacaoTab
+                                    client={selectedClient}
+                                    segment={selectedSegment}
+                                />
+                            )}
+                        </div>
                     </TabsContent>
                 </ScrollArea>
             </Tabs>
