@@ -107,6 +107,7 @@ const devMenuGroups: NavGroup[] = [
             { id: 'fund-summary', label: 'Resumo Fundo', icon: LineChart },
             { id: 'fund-lab', label: 'Lab', icon: FlaskConical },
             { id: 'flagship-peer', label: 'Flagship Peer', icon: Users2 },
+            { id: 'ingestion', label: 'Ingestão', icon: Database },
         ]
     },
     {
