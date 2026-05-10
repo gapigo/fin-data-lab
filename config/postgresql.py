@@ -31,6 +31,9 @@ class PostgresConnector:
                     df = df.drop(columns=["__id"])
                 return df
         except Exception as e:
+            import traceback
+            print(f"[read_sql ERROR] {e}")
+            print(traceback.format_exc())
             return pd.DataFrame()
     
     def execute_sql(self, query: str):

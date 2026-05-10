@@ -64,7 +64,7 @@ class AllocatorRepository(BaseRepository):
                 SELECT cnpj_fundo, dt_comptc, janela,
                        ret, vol, sharpe, mdd as max_dd,
                        recovery_time, calmar, hit_ratio,
-                       info_ratio, meta, bench
+                       info_ratio
                 FROM cvm.metrics
             """
             df = self.db.read_sql(sql)
@@ -75,7 +75,8 @@ class AllocatorRepository(BaseRepository):
             print(f"[AllocatorRepo] Aviso: metrics indisponível — {e}")
             return pd.DataFrame(columns=[
                 "cnpj_fundo", "dt_comptc", "janela",
-                "ret", "vol", "sharpe", "max_dd", "meta", "bench",
+
+                "ret", "vol", "sharpe", "max_dd",
             ])
 
     # ── ATIVOS CARTEIRA ──────────────────────────────────────────────────

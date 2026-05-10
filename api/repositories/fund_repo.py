@@ -48,7 +48,7 @@ class FundRepository(BaseRepository):
     @temp()
     def get_detail(self, cnpj: str) -> pd.DataFrame:
         sql = f"""
-            SELECT c.*, p.peer_grupo, p.peer_detalhado
+            SELECT c.*, p.peer_classificacao_full AS peer_grupo, NULL::text AS peer_detalhado
             FROM cvm.cadastro c
             LEFT JOIN cvm.peer p ON c.cnpj_fundo = p.cnpj_fundo
             WHERE c.cnpj_fundo = '{cnpj}' AND c.dt_fim IS NULL

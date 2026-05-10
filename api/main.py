@@ -23,7 +23,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.cache import request_dedup
 
 from .middleware.dedup import deduplicate_requests
-from .middleware.dedup import deduplicate_requests
 from .routers import funds, peer_groups, allocators, cache
 # from .routers import allocators_simple  # REMOVED: depends on deleted allocators_simplified
 
@@ -70,6 +69,9 @@ def health_check():
         "deduplicated_requests": stats["deduplicated_count"],
     }
 
+@app.get("/health")
+def health():
+    return {"status": "ok", "version": "2.0"}
 
 @app.get("/status")
 def get_status():
