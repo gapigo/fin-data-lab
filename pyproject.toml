@@ -47,7 +47,7 @@ ipython = "^8.18.1"
 jupyter = "^1.0.0"
 
 [tool.poetry.scripts]
-dev = "uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+dev = "uvicorn api.main:app --reload --host 0.0.0.0 --port 8000"
 
 [tool.black]
 line-length = 100

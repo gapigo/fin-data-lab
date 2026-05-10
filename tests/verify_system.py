@@ -9,9 +9,9 @@ from datetime import datetime
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 try:
-    from common.postgresql import PostgresConnector
+    from config.postgresql import PostgresConnector
 except ImportError:
-    print("Could not import common.postgresql")
+    print("Could not import config.postgresql")
 
 def check_db_views():
     print("\n[DB] Checking Database Views...")

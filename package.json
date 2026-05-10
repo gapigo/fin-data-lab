@@ -1,0 +1,13 @@
+{
+  "name": "fin-data-lab",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"uvicorn api.main:app --reload --port 8000\" \"cd site && npm run dev\"",
+    "api": "uvicorn api.main:app --reload --port 8000",
+    "frontend": "cd site && npm run dev",
+    "install:all": "cd site && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}

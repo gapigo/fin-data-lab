@@ -1,52 +1,54 @@
 """
-Allocators Router
-Endpoints para dashboard de Alocadores
+Allocators Router — endpoints para o dashboard de alocadores.
 """
+
 from fastapi import APIRouter, Query
-from typing import Optional, Dict, Any
+from typing import Optional
 
-from ..services.allocators import get_allocator_service
+from ..dependencies import get_db
+from ..repositories.allocator_repo import AllocatorRepository
+from ..services.allocator_service import AllocatorService
 
-router = APIRouter(prefix="/allocators", tags=["allocators"])
+router = APIRouter(prefix="/allocators", tags=["Allocators"])
+
+_service: Optional[AllocatorService] = None
+
+
+def _svc() -> AllocatorService:
+    global _service
+    if _service is None:
+        _service = AllocatorService(AllocatorRepository(get_db()))
+    return _service
 
 
 @router.get("/filters")
-async def get_filters() -> Dict[str, Any]:
-    """Retorna filtros disponíveis para o dashboard."""
-    service = get_allocator_service()
-    return service.get_filters()
+def get_filters():
+    return _svc().get_filters()
 
 
 @router.get("/flow")
-async def get_flow(
-    client: Optional[str] = Query(None),
-    segment: Optional[str] = Query(None),
-    peer: Optional[str] = Query(None),
-    window: int = Query(12)
-) -> Dict[str, Any]:
-    """Dados para aba Fluxo e Posição."""
-    service = get_allocator_service()
-    return service.get_flow(client, segment, peer, window)
+def get_flow(
+    client: Optional[str] = None,
+    segment: Optional[str] = None,
+    peer: Optional[str] = None,
+    window: int = 12,
+):
+    return _svc().get_flow_position(client, segment, peer, window)
 
 
 @router.get("/performance")
-async def get_performance(
-    client: Optional[str] = Query(None),
-    segment: Optional[str] = Query(None),
-    peer: Optional[str] = Query(None),
-    window: int = Query(12)
-) -> Dict[str, Any]:
-    """Dados para aba Performance."""
-    service = get_allocator_service()
-    return service.get_performance(client, segment, peer, window)
+def get_performance(
+    client: Optional[str] = None,
+    segment: Optional[str] = None,
+    peer: Optional[str] = None,
+):
+    return _svc().get_performance(client, segment, peer)
 
 
 @router.get("/allocation")
-async def get_allocation(
-    client: Optional[str] = Query(None),
-    segment: Optional[str] = Query(None),
-    peer: Optional[str] = Query(None)
-) -> Dict[str, Any]:
-    """Dados para aba Alocação."""
-    service = get_allocator_service()
-    return service.get_allocation(client, segment, peer)
+def get_allocation(
+    client: Optional[str] = None,
+    segment: Optional[str] = None,
+    peer: Optional[str] = None,
+):
+    return _svc().get_allocation(client, segment, peer)

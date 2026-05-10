@@ -1,92 +1,75 @@
-# API - Fin Data Lab
+# API v2 — Clean Architecture
 
-## Estrutura
+## Como rodar
+
+```bash
+# Do root do projeto:
+cd fin-data-lab
+uvicorn api.main:app --host 127.0.0.1 --port 8000 --reload
+```
+
+## Arquitetura
 
 ```
 api/
-├── main.py              # FastAPI entry point (endpoints atuais)
-├── models.py            # Pydantic models
-├── cache.py             # Cache utilities
-├── service.py           # DataService monolítico (legacy)
-├── services/            # Módulos de serviço (novo - cache-first)
-│   ├── __init__.py
-│   └── allocators.py    # Serviço de Alocadores
-└── routers/             # Routers FastAPI (novo)
-    ├── __init__.py
-    └── allocators.py    # Endpoints de Alocadores
+├── main.py              # 75 linhas  — ZERO lógica, só registra routers
+├── config.py            # Configuração centralizada (1 arquivo vs 10+)
+├── dependencies.py      # Injeção de dependências via lru_cache
+│
+├── schemas/             # Modelos Pydantic (entrada/saída)
+│   └── funds.py         # Todos os schemas do domínio
+│
+├── routers/             # Controllers HTTP (thin!)
+│   ├── funds.py         # GET /funds, /funds/{cnpj}/...
+│   ├── peer_groups.py   # CRUD /peer-groups
+│   ├── allocators.py    # GET /allocators/...
+│   ├── allocators_simple.py  # GET /allocators-simple/...
+│   └── cache.py         # GET/DELETE /cache/...
+│
+├── services/            # Lógica de negócio
+│   ├── fund_service.py           # Busca, detalhe, métricas, portfolio
+│   ├── peer_group_service.py     # CRUD de peer groups
+│   └── allocator_service.py      # Tabs: Fluxo, Performance, Alocação
+│
+├── repositories/        # Acesso a dados (uma query = um método)
+│   ├── base.py          # Helpers: normalize_cnpj, val()
+│   ├── fund_repo.py     # Queries de fundos (cadastro, cotas, portfolio)
+│   ├── peer_group_repo.py  # CRUD site.peer_groups
+│   └── allocator_repo.py  # Queries de alocadores (carteira, fluxo, metrics)
+│
+└── middleware/
+    └── dedup.py          # Request deduplication header
 ```
 
-## Padrão Cache-First
+## Comparação: api/ (antes) vs api/ (agora)
 
-A estratégia principal é usar **views pré-processadas** no banco de dados em vez de fazer JOINs complexos em runtime.
+| Aspecto | api/ (antes) | api/ (agora) |
+|---|---|---|
+| `main.py` | **422 linhas** — rotas, models, middleware, dedup logic | **75 linhas** — só registra routers |
+| `service.py` | **663 linhas** — God class com tudo | 3 services focados (~250L cada) |
+| Implementações de Allocators | **3 paralelas** (allocators.py, allocators_service.py, allocators_simplified/) | **1 service** + 1 wrapper para simplified |
+| Queries SQL | Espalhadas em 9+ arquivos | Centralizadas em 3 repositories |
+| `sys.path.append` | Em TODOS os arquivos | **1 lugar** (main.py) |
+| `try/except ImportError` | Em TODOS os módulos | **Zero** |
+| Configuração | Espalhada em 5+ arquivos | **1 arquivo** (config.py) |
+| Pasta `old/` | Dentro do código | **Removida** |
+| Código duplicado | Massivo (carteira loaded 4x) | **Zero** duplicação |
+| Total de arquivos Python | 27 | 19 |
 
-### Fontes de Dados Principais
+## Para adicionar um novo domínio
 
-| Tabela/View | Descrição | Uso |
-|-------------|-----------|-----|
-| `cvm.carteira` | View com cliente, cliente_segmentado, peer, nm_fundo_cota | Alocação, Filtros |
-| `alocadores.fluxo_veiculos` | Fluxo calculado por janela (6m, 12m, ...) | Fluxo |
-| `cvm.metrics` | Métricas de performance (ret, vol, sharpe) por janela | Performance |
+1. Crie `repositories/novo_repo.py` com queries `@temp()` cached
+2. Crie `services/novo_service.py` com lógica de negócio
+3. Crie `routers/novo.py` com endpoints
+4. Registre o router em `main.py`: `app.include_router(novo.router)`
 
-### Colunas de cvm.carteira
+**4 passos previsíveis. Sempre a mesma estrutura.**
 
-- `dt_comptc`: Data de competência
-- `cnpj_fundo`: CNPJ do fundo alocador
-- `cliente`: Nome do cliente (BB, BTG, Itaú, etc)
-- `cliente_segmentado`: Segmentação detalhada (BB Exclusivo, Itaú Private, etc)
-- `cnpj_fundo_cota`: CNPJ do fundo investido
-- `nm_fundo_cota`: Nome do fundo investido
-- `peer`: Classe do ativo (Renda Fixa, Multimercado, Ações, etc)
-- `vl_merc_pos_final`: Valor de mercado da posição
+## Princípios aplicados
 
-### Colunas de cvm.metrics
-
-- `cnpj_fundo`: CNPJ do fundo
-- `janela`: Janela temporal (6M, 12M, 24M, 36M, 48M, 60M)
-- `dt_comptc`: Data de referência
-- `ret`: Retorno acumulado
-- `vol`: Volatilidade
-- `sharpe`: Índice de Sharpe
-- `mdd`: Maximum Drawdown
-
-## Endpoints
-
-### Allocators Dashboard
-
-| Endpoint | Descrição |
-|----------|-----------|
-| `GET /allocators/filters` | Lista de clientes, segmentos e peers disponíveis |
-| `GET /allocators/flow` | Evolução patrimonial e distribuição de fluxo |
-| `GET /allocators/performance` | Risco x Retorno (scatter plot) |
-| `GET /allocators/allocation` | Snapshot da carteira atual |
-
-### Parâmetros
-
-- `client`: Filtro por cliente (ex: "BB", "Itaú")
-- `segment`: Filtro por segmento (ex: "BB Exclusivo")
-- `peer`: Filtro por classe de ativo (ex: "Multimercado")
-- `window`: Janela temporal em meses (6, 12, 24, 36, 48, 60)
-
-## Executando
-
-```bash
-cd api
-python main.py
-# API disponível em http://localhost:8000
-```
-
-## Testando
-
-```bash
-# Filtros
-curl http://localhost:8000/allocators/filters
-
-# Flow
-curl "http://localhost:8000/allocators/flow?client=BB&window=12"
-
-# Performance
-curl "http://localhost:8000/allocators/performance?client=BB"
-
-# Allocation
-curl "http://localhost:8000/allocators/allocation?client=BB&peer=Multimercado"
-```
+- **Single Responsibility**: cada arquivo faz UMA coisa
+- **Dependency Injection**: `get_db()` fornece o DB, repos recebem via construtor
+- **Open/Closed**: adicionar features = adicionar arquivos, sem modificar existentes
+- **Repository Pattern**: queries isoladas do resto do código
+- **Thin Controllers**: routers delegam tudo ao service
+- **DRY**: `BaseRepository` centraliza `normalize_cnpj`, `val()`
