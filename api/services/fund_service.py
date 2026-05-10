@@ -6,6 +6,18 @@ Orquestra: FundRepository → transformação → resposta.
 
 import pandas as pd
 import numpy as np
+import math
+
+def sanitize_floats(obj):
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+    if isinstance(obj, dict):
+        return {k: sanitize_floats(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize_floats(v) for v in obj]
+    return obj
+
 from typing import List, Optional
 from datetime import date
 
@@ -149,7 +161,7 @@ class FundService:
         pos_months = len(df_m_ret[df_m_ret > 0])
         neg_months = len(df_m_ret[df_m_ret < 0])
 
-        return {
+        return sanitize_floats({
             "rentabilidade_mes": rent_mes,
             "rentabilidade_ano": rent_ano,
             "rentabilidade_acumulada": rent_accum,
@@ -161,7 +173,7 @@ class FundService:
                 "best_month": round(df_m_ret.max() * 100, 2) if not df_m_ret.empty else 0,
                 "worst_month": round(df_m_ret.min() * 100, 2) if not df_m_ret.empty else 0,
             },
-        }
+        })
 
     # ── COMPOSITION ──────────────────────────────────────────────────────
 
