@@ -1,4 +1,4 @@
-import sys; sys.path.append('..')
+import sys, os; sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")));
 import pandas as pd
 import numpy as np
 from datetime import datetime
@@ -28,7 +28,7 @@ def get_recovery_time(prices_series):
     valid_periods = recovery_periods[recovery_periods > 0]
     return valid_periods.mean() if not valid_periods.empty else 0.0
 
-def calculate_metrics_175_final():
+def calculate_metrics_175_final(max_dates=None):
     db = PostgresConnector()
     
     print("Carregando cotas (CVM 175 ready)...")
@@ -108,6 +108,16 @@ def calculate_metrics_175_final():
     # Remove duplicatas de classe pegando a mais recente se houver (simplificação) ou apenas distinct
     df_classes = df_classes.drop_duplicates('cnpj_fundo').set_index('cnpj_fundo')
 
+    total_datas = len(todas_datas_alvo)
+    # Apply max_dates limit if specified
+    if max_dates is not None:
+        todas_datas_alvo = todas_datas_alvo[:max_dates]
+        total_datas = len(todas_datas_alvo)
+        if total_datas == 0:
+            print("Nenhuma data para processar com o limite especificado.")
+            return
+        print(f"Limitado a {total_datas} datas (--max-dates={max_dates}).")
+    
     total_datas = len(todas_datas_alvo)
     print(f"Iniciando processamento de {total_datas} datas...")
 
@@ -257,4 +267,9 @@ def calculate_metrics_175_final():
     print("Processo concluído!")
 
 if __name__ == "__main__":
-    calculate_metrics_175_final()
+    import argparse
+    parser = argparse.ArgumentParser(description="Compute fund metrics from cvm.cotas")
+    parser.add_argument("--max-dates", type=int, default=None,
+                        help="Limit to N most recent dates (for testing/incremental)")
+    args = parser.parse_args()
+    calculate_metrics_175_final(max_dates=args.max_dates)

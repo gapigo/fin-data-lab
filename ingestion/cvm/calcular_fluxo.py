@@ -6,7 +6,7 @@ import numpy as np
 from datetime import date
 
 # Adicionar path para importar common
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from config.postgresql import PostgresConnector
 
 def calcular_fluxo_refatorado():
