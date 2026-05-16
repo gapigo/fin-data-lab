@@ -22,7 +22,10 @@ def execute_query(req: QueryRequest):
         raise HTTPException(400, "Only SELECT queries are allowed.")
     t0 = time.time()
     try:
-        df = db.read_sql(f"{req.query} LIMIT {req.limit}")
+        q = req.query.strip()
+        if not q.upper().endswith('LIMIT') and ' LIMIT ' not in q.upper():
+            q += f" LIMIT {req.limit}"
+        df = db.read_sql(q)
         elapsed = int((time.time() - t0) * 1000)
         return {
             "columns": df.columns.tolist(),

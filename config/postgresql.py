@@ -21,11 +21,11 @@ class PostgresConnector:
             conn.execute(text(f"DROP TABLE IF EXISTS {s_quoted}.{t_quoted} CASCADE;"))
         print(f"Tabela {table_name} removida com sucesso.")
 
-    def read_sql(self, query: str) -> pd.DataFrame:
+    def read_sql(self, query: str, params: dict = None) -> pd.DataFrame:
         """Lê os dados e remove a coluna '__id' conforme sua instrução."""
         try:
             with self.engine.begin() as conn:
-                df = pd.read_sql(text(query), conn)
+                df = pd.read_sql(text(query), conn, params=params)
                 # Conforme solicitado, removemos a coluna de controle interna
                 if "__id" in df.columns:
                     df = df.drop(columns=["__id"])

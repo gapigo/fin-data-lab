@@ -5,7 +5,7 @@ import anthropic, json, os
 
 router = APIRouter()
 api_key = os.environ.get("ANTHROPIC_API_KEY")
-client = anthropic.Anthropic(api_key=api_key) if api_key else None
+client = anthropic.Anthropic(api_key=api_key) if api_key and api_key != "your_key_here" else None
 
 class ChatRequest(BaseModel):
     messages: list
@@ -26,14 +26,19 @@ def chat(req: ChatRequest):
         system += f"\n\nContexto atual: O usuário está analisando o fundo {req.context['fund_name']} (CNPJ: {req.context.get('cnpj', 'N/A')})."
 
     def stream():
-        with client.messages.stream(
-            model=req.model,
-            max_tokens=2048,
-            system=system,
-            messages=req.messages
-        ) as s:
-            for text in s.text_stream:
-                yield f"data: {json.dumps({'text': text})}\n\n"
+        try:
+            with client.messages.stream(
+                model=req.model,
+                max_tokens=2048,
+                system=system,
+                messages=req.messages
+            ) as s:
+                for text in s.text_stream:
+                    yield f"data: {json.dumps({'text': text})}\n\n"
+        except anthropic.AuthenticationError as e:
+            yield f"data: {json.dumps({'error': 'Chave de API Anthropic inválida. Configure uma chave válida no arquivo .env.'})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': f'Erro no serviço de IA: {str(e)}'})}\n\n"
         yield "data: [DONE]\n\n"
 
     return StreamingResponse(stream(), media_type="text/event-stream")

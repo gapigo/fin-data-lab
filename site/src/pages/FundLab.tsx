@@ -152,7 +152,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
 
     useEffect(() => {
         if (fund) {
-            setFundDesc(`Fundo de ${fund.classe || 'Investimento'} gerido por ${fund.gestor || 'Gestora'}.`);
+            setFundDesc(`Fundo de ${fund?.classe || 'Investimento'} gerido por ${fund?.gestor || 'Gestora'}.`);
         }
     }, [fund]);
   // Fetch annotations
@@ -242,7 +242,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                 selectedCnpj={selectedCnpj || undefined}
                             />
                         </div>
-                        <div className="text-sm text-slate-500">
+                        <div className="text-sm text-[var(--text-muted)]">
                             Pesquise um fundo para visualizar no Lab
                         </div>
                     </div>
@@ -277,36 +277,36 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
                                 <div className="space-y-4 max-w-2xl">
                                     <div className="flex gap-2">
-                                        <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
-                                            {fund.classe || 'Fundo'}
+                                        <Badge className="bg-[var(--positive-bg)] text-[var(--positive)] border-[var(--positive)]/20 hover:bg-[var(--positive-bg)] transition-colors">
+                                            {fund?.classe || 'Fundo'}
                                         </Badge>
                                         <Badge variant="outline" className="text-[var(--text-muted)] border-[var(--border-default)]">
-                                            {fund.publico_alvo || 'Investidores em Geral'}
+                                            {fund?.publico_alvo || 'Investidores em Geral'}
                                         </Badge>
-                                        {fund.fundo_cotas === 'S' && (
-                                            <Badge variant="outline" className="text-blue-400 border-blue-700">
+                                        {fund?.fundo_cotas === 'S' && (
+                                            <Badge variant="outline" className="text-[var(--cvm-color)] border-[var(--cvm-color)]">
                                                 FIC
                                             </Badge>
                                         )}
                                     </div>
-                                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                                        {fund.denom_social}
+                                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-[var(--text-primary)]">
+                                        {fund?.denom_social}
                                     </h1>
                                     <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm md:text-base">
                                         <p className="line-clamp-2 md:line-clamp-none max-w-xl">{fundDesc}</p>
-                                        <Button variant="ghost" size="icon" onClick={() => setIsEditOpen(true)} className="h-6 w-6 text-slate-500 hover:text-emerald-400">
+                                        <Button variant="ghost" size="icon" onClick={() => setIsEditOpen(true)} className="h-6 w-6 text-[var(--text-muted)] hover:text-[var(--positive)]">
                                             <Edit3 size={14} />
                                         </Button>
                                     </div>
                                 </div>
                                 <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                                    <Card className="bg-slate-900/50 border-[var(--border-subtle)] backdrop-blur-sm min-w-[200px]">
+                                    <Card className="bg-[var(--bg-elevated)] border-[var(--border-subtle)] min-w-[200px]">
                                         <CardContent className="p-4">
-                                            <p className="text-slate-500 text-xs uppercase font-medium">Cota Atual</p>
+                                            <p className="text-[var(--text-muted)] text-xs uppercase font-medium">Cota Atual</p>
                                             <div className="flex items-baseline gap-2 mt-1">
-                                                <span className="text-2xl font-bold text-white">R$ {lastQuota?.vl_quota?.toFixed(4) || '-'}</span>
+                                                <span className="text-2xl font-bold text-[var(--text-primary)]">R$ {lastQuota?.vl_quota?.toFixed(4) || '-'}</span>
                                                 {quotaChange !== 0 && (
-                                                    <span className={`text-xs flex items-center ${quotaChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                    <span className={`text-xs flex items-center ${quotaChange >= 0 ? 'text-[var(--positive)]' : 'text-[var(--negative)]'}`}>
                                                         {quotaChange >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                                                         {quotaChange >= 0 ? '+' : ''}{quotaChange.toFixed(2)}%
                                                     </span>
@@ -314,11 +314,11 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                             </div>
                                         </CardContent>
                                     </Card>
-                                    <Card className="bg-slate-900/50 border-[var(--border-subtle)] backdrop-blur-sm min-w-[200px]">
+                                    <Card className="bg-[var(--bg-elevated)] border-[var(--border-subtle)] min-w-[200px]">
                                         <CardContent className="p-4">
-                                            <p className="text-slate-500 text-xs uppercase font-medium">Patrimônio Líquido</p>
+                                            <p className="text-[var(--text-muted)] text-xs uppercase font-medium">Patrimônio Líquido</p>
                                             <div className="flex items-baseline gap-2 mt-1">
-                                                <span className="text-2xl font-bold text-white">{lastQuota?.vl_patrim_liq ? formatCurrency(lastQuota.vl_patrim_liq) : '-'}</span>
+                                                <span className="text-2xl font-bold text-[var(--text-primary)]">{lastQuota?.vl_patrim_liq ? formatCurrency(lastQuota.vl_patrim_liq) : '-'}</span>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -383,12 +383,12 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
         </div>
 <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-10">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-                    <TabsList className="bg-slate-900/80 border border-[var(--border-subtle)] p-1 h-auto flex-wrap justify-start w-full md:w-auto">
-                        <TabsTrigger value="overview" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white px-4 py-2">Visão Geral</TabsTrigger>
-                        <TabsTrigger value="portfolio" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white px-4 py-2">Carteira</TabsTrigger>
-                        <TabsTrigger value="performance" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white px-4 py-2">Rentabilidade</TabsTrigger>
-                        <TabsTrigger value="structure" className="data-[state=active]:bg-emerald-500 data-[state=active]:text-white px-4 py-2">Estrutura</TabsTrigger>
-                        <TabsTrigger value="ai" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white px-4 py-2 flex gap-2">
+                    <TabsList className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] p-1 h-auto flex-wrap justify-start w-full md:w-auto">
+                        <TabsTrigger value="overview" className="data-[state=active]:bg-[var(--positive)] data-[state=active]:text-white px-4 py-2">Visão Geral</TabsTrigger>
+                        <TabsTrigger value="portfolio" className="data-[state=active]:bg-[var(--positive)] data-[state=active]:text-white px-4 py-2">Carteira</TabsTrigger>
+                        <TabsTrigger value="performance" className="data-[state=active]:bg-[var(--positive)] data-[state=active]:text-white px-4 py-2">Rentabilidade</TabsTrigger>
+                        <TabsTrigger value="structure" className="data-[state=active]:bg-[var(--positive)] data-[state=active]:text-white px-4 py-2">Estrutura</TabsTrigger>
+                        <TabsTrigger value="ai" className="data-[state=active]:bg-[var(--accent-primary)] data-[state=active]:text-white px-4 py-2 flex gap-2">
                             <Bot size={16} /> AI Analyst
                         </TabsTrigger>
                     </TabsList>
@@ -411,32 +411,32 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             {/* FEES & TERMS */}
                             <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)] md:col-span-2">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-emerald-400">
+                                    <CardTitle className="flex items-center gap-2 text-[var(--positive)]">
                                         <Clock size={20} />
                                         Taxas e Prazos
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                                <CardContent>
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">Custos</h3>
+                                        <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider">Custos</h3>
                                         <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-2">
                                             <span className="text-[var(--text-secondary)]">Taxa de Administração</span>
-                                            <span className="font-semibold text-white">{fund.taxa_adm || '-'}</span>
+                                            <span className="font-semibold text-[var(--text-primary)]">{fund?.taxa_adm || '-'}</span>
                                         </div>
                                         <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-2">
                                             <span className="text-[var(--text-secondary)]">Taxa de Performance</span>
-                                            <span className="font-semibold text-white">{fund.taxa_perf || '-'}</span>
+                                            <span className="font-semibold text-[var(--text-primary)]">{fund?.taxa_perf || '-'}</span>
                                         </div>
                                     </div>
                                     <div className="space-y-4">
-                                        <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">Informações</h3>
+                                        <h3 className="text-sm font-medium text-[var(--text-muted)] uppercase tracking-wider">Informações</h3>
                                         <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-2">
                                             <span className="text-[var(--text-secondary)]">Benchmark</span>
-                                            <span className="font-semibold text-emerald-400">{fund.benchmark || '-'}</span>
+                                            <span className="font-semibold text-[var(--positive)]">{fund?.benchmark || '-'}</span>
                                         </div>
                                         <div className="flex justify-between items-center border-b border-[var(--border-subtle)] pb-2">
                                             <span className="text-[var(--text-secondary)]">Tipo de Condomínio</span>
-                                            <span className="font-semibold text-white">{fund.condom || '-'}</span>
+                                            <span className="font-semibold text-[var(--text-primary)]">{fund?.condom || '-'}</span>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -445,36 +445,35 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             {/* ACTORS */}
                             <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                                 <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-blue-400">
+                                    <CardTitle className="flex items-center gap-2 text-[var(--cvm-color)]">
                                         <Users size={20} />
                                         Atores Principais
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div className="group cursor-pointer">
-                                        <p className="text-xs text-slate-500 mb-1">GESTORA (ASSET)</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">GESTORA (ASSET)</p>
                                         <div className="flex items-center gap-3 p-2 rounded-md hover:bg-[var(--bg-elevated)] transition-colors">
-                                            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">
-                                                {fund.gestor?.slice(0, 2).toUpperCase() || 'GE'}
+                                            <div className="w-8 h-8 rounded-full bg-[var(--bg-sunken)] flex items-center justify-center text-xs font-bold text-[var(--text-primary)]">
+                                                {fund?.gestor?.slice(0, 2).toUpperCase() || 'GE'}
                                             </div>
                                             <div>
-                                                <p className="font-semibold text-white">{fund.gestor || '-'}</p>
-                                                <p className="text-xs text-blue-400 group-hover:underline">Ver perfil</p>
+                                                <p className="font-semibold text-[var(--text-primary)]">{fund?.gestor || '-'}</p>
+                                                <p className="text-xs text-[var(--accent-primary)] group-hover:underline">Ver perfil</p>
                                             </div>
                                         </div>
                                     </div>
-                                    <Separator className="bg-[var(--bg-elevated)]" />
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">ADMINISTRADOR</p>
-                                        <p className="font-medium text-[var(--text-secondary)]">{fund.admin || '-'}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">ADMINISTRADOR</p>
+                                        <p className="font-medium text-[var(--text-secondary)]">{fund?.admin || '-'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">CUSTODIANTE</p>
-                                        <p className="font-medium text-[var(--text-secondary)]">{fund.custodiante || '-'}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">CUSTODIANTE</p>
+                                        <p className="font-medium text-[var(--text-secondary)]">{fund?.custodiante || '-'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">AUDITOR</p>
-                                        <p className="font-medium text-[var(--text-secondary)]">{fund.auditor || '-'}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">AUDITOR</p>
+                                        <p className="font-medium text-[var(--text-secondary)]">{fund?.auditor || '-'}</p>
                                     </div>
                                 </CardContent>
                             </Card>
@@ -483,28 +482,28 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)] md:col-span-3">
                                 <CardContent className="p-6 grid grid-cols-1 md:grid-cols-5 gap-6">
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">CLASSE CVM</p>
-                                        <p className="text-lg font-medium text-white">{fund.classe || '-'}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">CLASSE CVM</p>
+                                        <p className="text-lg font-medium text-[var(--text-primary)]">{fund?.classe || '-'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">PÚBLICO ALVO</p>
-                                        <p className="text-lg font-medium text-white">{fund.publico_alvo || '-'}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">PÚBLICO ALVO</p>
+                                        <p className="text-lg font-medium text-[var(--text-primary)]">{fund?.publico_alvo || '-'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">SITUAÇÃO</p>
-                                        <p className={`text-lg font-medium ${fund.sit === 'EM FUNCIONAMENTO NORMAL' ? 'text-emerald-400' : 'text-[var(--text-muted)]'}`}>
-                                            {fund.sit || '-'}
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">SITUAÇÃO</p>
+                                        <p className={`text-lg font-medium ${fund?.sit === 'EM FUNCIONAMENTO NORMAL' ? 'text-[var(--positive)]' : 'text-[var(--text-muted)]'}`}>
+                                            {fund?.sit || '-'}
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">COTISTAS</p>
-                                        <p className="text-lg font-medium text-white">{lastQuota?.nr_cotst?.toLocaleString('pt-BR') || '-'}</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">COTISTAS</p>
+                                        <p className="text-lg font-medium text-[var(--text-primary)]">{lastQuota?.nr_cotst?.toLocaleString('pt-BR') || '-'}</p>
                                     </div>
                                     <div>
-                                        <p className="text-xs text-slate-500 mb-1">BENCHMARK</p>
+                                        <p className="text-xs text-[var(--text-muted)] mb-1">BENCHMARK</p>
                                         <div className="flex items-center gap-2">
                                             <BarChart3 className="text-[var(--text-muted)]" size={16} />
-                                            <p className="text-lg font-medium text-emerald-400">{fund.benchmark || '-'}</p>
+                                            <p className="text-lg font-medium text-[var(--positive)]">{fund?.benchmark || '-'}</p>
                                         </div>
                                     </div>
                                 </CardContent>
@@ -523,7 +522,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                 <CardHeader>
                                     <CardTitle className="text-[var(--text-primary)]">Alocação por Tipo</CardTitle>
                                     {composition?.date && (
-                                        <p className="text-xs text-slate-500">Ref: {new Date(composition.date).toLocaleDateString('pt-BR')}</p>
+                                        <p className="text-xs text-[var(--text-muted)]">Ref: {new Date(composition.date).toLocaleDateString('pt-BR')}</p>
                                     )}
                                 </CardHeader>
                                 <CardContent className="h-[300px]">
@@ -554,7 +553,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                             </PieChart>
                                         </ResponsiveContainer>
                                     ) : (
-                                        <div className="h-full flex items-center justify-center text-slate-500">
+                                        <div className="h-full flex items-center justify-center text-[var(--text-muted)]">
                                             Composição não disponível
                                         </div>
                                     )}
@@ -566,10 +565,10 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                 <CardHeader className="flex flex-row items-center justify-between">
                                     <CardTitle className="text-[var(--text-primary)]">Principais Ativos (Maiores Posições)</CardTitle>
                                     <div className="relative w-48">
-                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-slate-500" />
+                                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-[var(--text-muted)]" />
                                         <Input
                                             placeholder="Filtrar ativo..."
-                                            className="pl-8 bg-slate-950/50 border-[var(--border-subtle)] h-9"
+                                            className="pl-8 bg-[var(--bg-elevated)] border-[var(--border-subtle)] h-9"
                                             value={assetFilter}
                                             onChange={(e) => setAssetFilter(e.target.value)}
                                         />
@@ -582,8 +581,8 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                         </div>
                                     ) : (
                                         <Table>
-                                            <TableHeader className="bg-slate-950/50">
-                                                <TableRow className="border-[var(--border-subtle)] hover:bg-slate-950/50">
+                                            <TableHeader className="bg-[var(--bg-elevated)]">
+                                                <TableRow className="border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)]">
                                                     <TableHead className="text-[var(--text-muted)]">Ativo</TableHead>
                                                     <TableHead className="text-[var(--text-muted)]">Tipo</TableHead>
                                                     <TableHead className="text-right text-[var(--text-muted)]">Valor</TableHead>
@@ -595,8 +594,8 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                                     <TableRow key={idx} className="border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)]/50">
                                                         <TableCell className="font-medium">
                                                             <div className="flex flex-col">
-                                                                <span className="text-white">{asset.codigo || asset.nome.slice(0, 10)}</span>
-                                                                <span className="text-xs text-slate-500 truncate max-w-[200px]">{asset.nome}</span>
+                                                                <span className="text-[var(--text-primary)]">{asset.codigo || asset.nome.slice(0, 10)}</span>
+                                                                <span className="text-xs text-[var(--text-muted)] truncate max-w-[200px]">{asset.nome}</span>
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
@@ -608,12 +607,12 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                                             </Badge>
                                                         </TableCell>
                                                         <TableCell className="text-right text-[var(--text-secondary)]">{formatCurrency(asset.valor)}</TableCell>
-                                                        <TableCell className="text-right font-bold text-emerald-400">{asset.percentual}%</TableCell>
+                                                        <TableCell className="text-right font-bold text-[var(--positive)]">{asset.percentual}%</TableCell>
                                                     </TableRow>
                                                 ))}
                                                 {filteredAssets.length === 0 && (
                                                     <TableRow>
-                                                        <TableCell colSpan={4} className="text-center py-8 text-slate-500">
+                                                        <TableCell colSpan={4} className="text-center py-8 text-[var(--text-muted)]">
                                                             Nenhum ativo encontrado
                                                         </TableCell>
                                                     </TableRow>
@@ -632,7 +631,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                     <Card key={idx} className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                                         <CardHeader className="pb-2">
                                             <CardTitle className="text-base text-[var(--text-primary)]">{bloco.nome_display}</CardTitle>
-                                            <p className="text-xs text-slate-500">
+                                            <p className="text-xs text-[var(--text-muted)]">
                                                 {formatCurrency(bloco.total_valor)} • {bloco.total_percentual}% do PL
                                             </p>
                                         </CardHeader>
@@ -644,11 +643,11 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                                             <span className="text-[var(--text-secondary)] truncate max-w-[180px]" title={ativo.nome}>
                                                                 {ativo.nome}
                                                             </span>
-                                                            <span className="text-emerald-400 font-medium">{ativo.percentual}%</span>
+                                                            <span className="text-[var(--positive)] font-medium">{ativo.percentual}%</span>
                                                         </div>
                                                     ))}
                                                     {bloco.ativos.length > 5 && (
-                                                        <p className="text-xs text-slate-500 text-center pt-2">
+                                                        <p className="text-xs text-[var(--text-muted)] text-center pt-2">
                                                             +{bloco.ativos.length - 5} outros ativos
                                                         </p>
                                                     )}
@@ -703,15 +702,14 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             {metrics && Object.entries(metrics.rentabilidade_ano).sort((a, b) => Number(b[0]) - Number(a[0])).slice(0, 6).map(([year, value]) => (
                                 <Card key={year} className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                                     <CardContent className="p-4 flex flex-col items-center justify-center">
-                                        <span className="text-slate-500 text-xs font-bold uppercase mb-1">{year}</span>
-                                        <span className={`text-xl font-bold ${value >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                        <span className="text-[var(--text-muted)] text-xs font-bold uppercase mb-1">{year}</span>
+                                        <span className={`text-xl font-bold ${value >= 0 ? 'text-[var(--positive)]' : 'text-[var(--negative)]'}`}>
                                             {value > 0 ? '+' : ''}{value}%
                                         </span>
                                     </CardContent>
                                 </Card>
                             ))}
                         </div>
-
                         {/* Monthly Returns Table */}
                         {metrics && (
                             <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
@@ -722,7 +720,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                     <div className="overflow-x-auto">
                                         <Table>
                                             <TableHeader>
-                                                <TableRow className="bg-slate-900 border-none hover:bg-slate-900">
+                                                <TableRow className="bg-[var(--bg-sunken)] border-none hover:bg-[var(--bg-sunken)]">
                                                     <TableHead className="text-[var(--text-secondary)] w-20">ANO</TableHead>
                                                     {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map(m => (
                                                         <TableHead key={m} className="text-[var(--text-secondary)] text-center">{m}</TableHead>
@@ -737,7 +735,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                                         {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(month => {
                                                             const val = metrics.rentabilidade_mes[year]?.[month.toString()];
                                                             return (
-                                                                <TableCell key={month} className={`text-center text-xs ${val !== undefined ? (val >= 0 ? 'text-emerald-500' : 'text-rose-500') : 'text-slate-600'}`}>
+                                                                <TableCell key={month} className={`text-center text-xs ${val !== undefined ? (val >= 0 ? 'text-[var(--positive)]' : 'text-[var(--negative)]') : 'text-[var(--text-muted)]'}`}>
                                                                     {val !== undefined ? `${val.toFixed(2)}%` : '-'}
                                                                 </TableCell>
                                                             );
@@ -763,7 +761,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                 <CardHeader>
                                     <CardTitle className="text-[var(--text-primary)]">Estrutura do Fundo</CardTitle>
                                     {structure && (
-                                        <Badge variant="outline" className={`w-fit ${structure.tipo === 'FIC' ? 'text-blue-400 border-blue-700' : structure.tipo === 'MASTER' ? 'text-purple-400 border-purple-700' : 'text-[var(--text-muted)] border-[var(--border-default)]'}`}>
+                                        <Badge variant="outline" className={`w-fit ${structure.tipo === 'FIC' ? 'text-[var(--cvm-color)] border-[var(--cvm-color)]' : structure.tipo === 'MASTER' ? 'text-[var(--crypto-color)] border-[var(--crypto-color)]' : 'text-[var(--text-muted)] border-[var(--border-default)]'}`}>
                                             {structure.tipo || 'FI'}
                                         </Badge>
                                     )}
@@ -774,28 +772,28 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                     ) : structure ? (
                                         <div className="text-center space-y-4 w-full p-4">
                                             <div className="relative">
-                                                <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-500 mx-auto flex items-center justify-center text-emerald-500 font-bold z-10 relative">
+                                                <div className="w-20 h-20 rounded-full bg-[var(--positive-bg)] border-2 border-[var(--positive)] mx-auto flex items-center justify-center text-[var(--positive)] font-bold z-10 relative">
                                                     {structure.tipo || 'FI'}
                                                 </div>
                                                 {structure.investe_em.length > 0 && (
-                                                    <div className="absolute top-20 left-1/2 w-0.5 h-10 bg-slate-700 -translate-x-1/2"></div>
+                                                    <div className="absolute top-20 left-1/2 w-0.5 h-10 bg-[var(--border-strong)] -translate-x-1/2"></div>
                                                 )}
                                             </div>
                                             {structure.investe_em.length > 0 && (
                                                 <div className="pt-10 flex flex-wrap gap-4 justify-center">
                                                     {structure.investe_em.slice(0, 4).map((rel, i) => (
                                                         <div key={i} className="flex flex-col items-center">
-                                                            <div className="w-14 h-14 rounded-full bg-[var(--bg-elevated)] border border-slate-600 flex items-center justify-center text-xs text-[var(--text-secondary)]">
+                                                            <div className="w-14 h-14 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center text-xs text-[var(--text-secondary)]">
                                                                 FI
                                                             </div>
-                                                            <span className="text-xs text-slate-500 mt-2 max-w-[100px] text-center truncate" title={rel.nome_relacionado}>
+                                                            <span className="text-xs text-[var(--text-muted)] mt-2 max-w-[100px] text-center truncate" title={rel.nome_relacionado}>
                                                                 {rel.nome_relacionado.slice(0, 15)}...
                                                             </span>
                                                         </div>
                                                     ))}
                                                     {structure.investe_em.length > 4 && (
                                                         <div className="flex flex-col items-center">
-                                                            <div className="w-14 h-14 rounded-full bg-[var(--bg-elevated)] border border-slate-600 flex items-center justify-center text-xs text-[var(--text-secondary)]">
+                                                            <div className="w-14 h-14 rounded-full bg-[var(--bg-elevated)] border border-[var(--border-default)] flex items-center justify-center text-xs text-[var(--text-secondary)]">
                                                                 +{structure.investe_em.length - 4}
                                                             </div>
                                                         </div>
@@ -803,13 +801,13 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                                 </div>
                                             )}
                                             {structure.espelho_de && (
-                                                <p className="text-xs text-blue-400 mt-4">
+                                                <p className="text-xs text-[var(--accent-primary)] mt-4">
                                                     Espelho de: {structure.espelho_de}
                                                 </p>
                                             )}
                                         </div>
                                     ) : (
-                                        <p className="text-slate-500">Estrutura não disponível</p>
+                                        <p className="text-[var(--text-muted)]">Estrutura não disponível</p>
                                     )}
                                 </CardContent>
                             </Card>
@@ -826,10 +824,10 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                                 <ul className="space-y-3">
                                                     {structure.investe_em.map((f, i) => (
                                                         <li key={i} className="flex items-center justify-between text-sm border-b border-[var(--border-subtle)]/50 pb-2 last:border-0">
-                                                            <span className="text-[var(--text-secondary)] hover:text-emerald-400 cursor-pointer truncate max-w-[250px]" title={f.nome_relacionado}>
+                                                            <span className="text-[var(--text-secondary)] hover:text-[var(--positive)] cursor-pointer truncate max-w-[250px]" title={f.nome_relacionado}>
                                                                 {f.nome_relacionado}
                                                             </span>
-                                                            {f.valor && <span className="text-xs text-slate-500">{formatCurrency(f.valor)}</span>}
+                                                            {f.valor && <span className="text-xs text-[var(--text-muted)]">{formatCurrency(f.valor)}</span>}
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -837,7 +835,6 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                         </CardContent>
                                     </Card>
                                 )}
-
                                 {/* Invested by */}
                                 {structure?.investido_por && structure.investido_por.length > 0 && (
                                     <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
@@ -849,10 +846,10 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                                 <ul className="space-y-3">
                                                     {structure.investido_por.map((f, i) => (
                                                         <li key={i} className="flex items-center justify-between text-sm border-b border-[var(--border-subtle)]/50 pb-2 last:border-0">
-                                                            <span className="text-[var(--text-secondary)] hover:text-emerald-400 cursor-pointer truncate max-w-[250px]" title={f.nome_relacionado}>
+                                                            <span className="text-[var(--text-secondary)] hover:text-[var(--positive)] cursor-pointer truncate max-w-[250px]" title={f.nome_relacionado}>
                                                                 {f.nome_relacionado}
                                                             </span>
-                                                            {f.valor && <span className="text-xs text-slate-500">{formatCurrency(f.valor)}</span>}
+                                                            {f.valor && <span className="text-xs text-[var(--text-muted)]">{formatCurrency(f.valor)}</span>}
                                                         </li>
                                                     ))}
                                                 </ul>
@@ -860,7 +857,6 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                         </CardContent>
                                     </Card>
                                 )}
-
                                 {/* Metrics */}
                                 {metrics?.consistency && (
                                     <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
@@ -870,20 +866,20 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                         <CardContent>
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="text-center">
-                                                    <p className="text-xs text-slate-500">Meses Positivos</p>
-                                                    <p className="text-2xl font-bold text-emerald-400">{metrics.consistency.pos_months}</p>
+                                                    <p className="text-xs text-[var(--text-muted)]">Meses Positivos</p>
+                                                    <p className="text-2xl font-bold text-[var(--positive)]">{metrics.consistency.pos_months}</p>
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-xs text-slate-500">Meses Negativos</p>
-                                                    <p className="text-2xl font-bold text-rose-400">{metrics.consistency.neg_months}</p>
+                                                    <p className="text-xs text-[var(--text-muted)]">Meses Negativos</p>
+                                                    <p className="text-2xl font-bold text-[var(--negative)]">{metrics.consistency.neg_months}</p>
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-xs text-slate-500">Melhor Mês</p>
-                                                    <p className="text-lg font-semibold text-emerald-400">{formatPercent(metrics.consistency.best_month)}</p>
+                                                    <p className="text-xs text-[var(--text-muted)]">Melhor Mês</p>
+                                                    <p className="text-lg font-semibold text-[var(--positive)]">{formatPercent(metrics.consistency.best_month)}</p>
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-xs text-slate-500">Pior Mês</p>
-                                                    <p className="text-lg font-semibold text-rose-400">{formatPercent(metrics.consistency.worst_month)}</p>
+                                                    <p className="text-xs text-[var(--text-muted)]">Pior Mês</p>
+                                                    <p className="text-lg font-semibold text-[var(--negative)]">{formatPercent(metrics.consistency.worst_month)}</p>
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -901,9 +897,9 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             </div>
                         ) : (
                             <>
-                                <Card className="flex-1 bg-slate-950 border-indigo-500/30 border shadow-lg shadow-indigo-500/5 flex flex-col">
-                            <CardHeader className="bg-slate-900/50 border-b border-[var(--border-subtle)]">
-                                <CardTitle className="flex items-center gap-2 text-indigo-400">
+                                <Card className="flex-1 bg-[var(--bg-secondary)] border-[var(--border-subtle)] flex flex-col">
+                            <CardHeader className="bg-[var(--bg-elevated)] border-b border-[var(--border-subtle)]">
+                                <CardTitle className="flex items-center gap-2 text-[var(--accent-primary)]">
                                     <Bot size={20} />
                                     Lab AI Analyst
                                 </CardTitle>
@@ -915,7 +911,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                         {messages.map((msg) => (
                                             <div key={msg.id} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                                 <div className={`max-w-[80%] rounded-lg p-3 text-sm ${msg.sender === 'user'
-                                                    ? 'bg-indigo-600 text-white rounded-br-none'
+                                                    ? 'bg-[var(--accent-primary)] text-white rounded-br-none'
                                                     : 'bg-[var(--bg-elevated)] text-[var(--text-primary)] rounded-bl-none border border-[var(--border-default)]'
                                                     }`}>
                                                     <p>{msg.text}</p>
@@ -930,10 +926,9 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                             value={chatInput}
                                             onChange={e => setChatInput(e.target.value)}
                                             placeholder="Ex: Qual o limite de investimento no exterior?"
-                                            className="bg-slate-950 border-[var(--border-default)] focus:border-indigo-500"
+                                            className="bg-[var(--bg-elevated)] border-[var(--border-default)] focus:border-[var(--accent-primary)]"
                                         />
-                                        <Button type="submit" size="icon" className="bg-indigo-600 hover:bg-indigo-700">
-                                            <Send size={18} />
+                                        <Button type="submit" size="icon" className="bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)]">
                                         </Button>
                                     </form>
                                 </div>
@@ -946,13 +941,13 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             </CardHeader>
                             <CardContent className="space-y-3">
                                 <div className="flex items-center gap-3 p-2 bg-[var(--bg-elevated)]/50 rounded border border-[var(--border-default)]/50">
-                                    <div className="bg-emerald-500/20 p-2 rounded text-emerald-400 font-bold text-xs">CNPJ</div>
+                                    <div className="bg-[var(--positive-bg)] p-2 rounded text-[var(--positive)] font-bold text-xs">CNPJ</div>
                                     <div>
-                                        <p className="text-sm font-medium text-[var(--text-secondary)]">{fund.cnpj_fundo}</p>
+                                        <p className="text-sm font-medium text-[var(--text-secondary)]">{fund?.cnpj_fundo}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 p-2 bg-[var(--bg-elevated)]/50 rounded border border-[var(--border-default)]/50">
-                                    <div className="bg-blue-500/20 p-2 rounded text-blue-400 font-bold text-xs">PL</div>
+                                    <div className="bg-[var(--cvm-light)] p-2 rounded text-[var(--cvm-color)] font-bold text-xs">PL</div>
                                     <div>
                                         <p className="text-sm font-medium text-[var(--text-secondary)]">
                                             {lastQuota?.vl_patrim_liq ? formatCurrency(lastQuota.vl_patrim_liq) : '-'}
@@ -960,7 +955,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3 p-2 bg-[var(--bg-elevated)]/50 rounded border border-[var(--border-default)]/50">
-                                    <div className="bg-purple-500/20 p-2 rounded text-purple-400 font-bold text-xs">VOL</div>
+                                    <div className="bg-[var(--crypto-light)] p-2 rounded text-[var(--crypto-color)] font-bold text-xs">VOL</div>
                                     <div>
                                         <p className="text-sm font-medium text-[var(--text-secondary)]">
                                             {formatPercent(metrics?.volatilidade_12m)}
@@ -978,7 +973,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
 
             {/* EDIT DIALOG */}
             <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                <DialogContent className="bg-slate-900 border-[var(--border-subtle)] text-slate-100">
+                <DialogContent className="bg-[var(--bg-elevated)] border-[var(--border-subtle)] text-[var(--text-primary)]">
                     <DialogHeader>
                         <DialogTitle>Editar Informações do Fundo</DialogTitle>
                     </DialogHeader>
@@ -988,13 +983,13 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                             <Textarea
                                 value={fundDesc}
                                 onChange={(e) => setFundDesc(e.target.value)}
-                                className="bg-slate-950 border-[var(--border-subtle)] min-h-[150px]"
+                                className="bg-[var(--bg-secondary)] border-[var(--border-subtle)] min-h-[150px]"
                             />
                         </div>
                     </div>
                     <div className="flex justify-end gap-2">
                         <Button variant="ghost" onClick={() => setIsEditOpen(false)}>Cancelar</Button>
-                        <Button className="bg-emerald-500 hover:bg-emerald-600" onClick={() => setIsEditOpen(false)}>Salvar Alterações</Button>
+                        <Button className="bg-[var(--positive)] hover:bg-[var(--positive)]/80" onClick={() => setIsEditOpen(false)}>Salvar Alterações</Button>
                     </div>
                 </DialogContent>
             </Dialog>

@@ -23,9 +23,10 @@ export const LoadingSkeleton: React.FC<LoadingSkeletonProps> = ({
   const resolvedHeight = height || VARIANT_HEIGHTS[variant];
 
   return (
-    <div
+    <span
       className={`skeleton ${className}`}
       style={{
+        display: 'inline-block',
         width: typeof width === 'number' ? `${width}px` : width,
         height: typeof resolvedHeight === 'number' ? `${resolvedHeight}px` : resolvedHeight,
       }}

@@ -37,7 +37,7 @@ export const DashboardHeader = ({
     }
     setLoading(true);
     try {
-      const res = await fetch(`/api/funds/search?q=${encodeURIComponent(q)}&limit=8`);
+      const res = await fetch(`/api/funds?q=${encodeURIComponent(q)}&limit=8`);
       if (res.ok) {
         const data = await res.json();
         setResults(data || []);

@@ -12,6 +12,12 @@ import os
 import asyncio
 import json
 from datetime import date
+import time
+
+# Simple TTL cache for ingestion status (expensive query)
+_status_cache: dict | None = None
+_status_cache_time: float = 0
+_STATUS_CACHE_TTL = 300  # 5 minutes
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
@@ -42,6 +48,12 @@ class IngestionStatus(BaseModel):
 @router.get("/status", response_model=IngestionStatus)
 def get_status():
     """Return data freshness info (last dates, days outdated)."""
+    global _status_cache, _status_cache_time
+
+    # Return cached result if still fresh
+    if _status_cache is not None and (time.time() - _status_cache_time) < _STATUS_CACHE_TTL:
+        return IngestionStatus(**_status_cache)
+
     df_cotas = _db.read_sql("SELECT MAX(dt_comptc) AS max_date FROM cvm.cotas")
     df_carteira = _db.read_sql(
         "SELECT MAX(dt_comptc) AS max_date FROM cvm.carteira"
@@ -74,7 +86,7 @@ def get_status():
     fund_count = int(df_fund_count['cnt'].iloc[0]) if not df_fund_count.empty else None
     total_pl = float(df_pl['total_pl'].iloc[0]) if not df_pl.empty and df_pl['total_pl'].iloc[0] is not None else None
 
-    return IngestionStatus(
+    result = IngestionStatus(
         cotas_last_date=cotas_date.isoformat() if cotas_date else None,
         carteira_last_date=carteira_date.isoformat() if carteira_date else None,
         days_outdated=days_out,
@@ -82,6 +94,10 @@ def get_status():
         fund_count=fund_count,
         total_pl=total_pl,
     )
+
+    _status_cache = result.model_dump()
+    _status_cache_time = time.time()
+    return result
 
 
 # ── GET /ingestion/history ─────────────────────────────────────────────────

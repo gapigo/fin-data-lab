@@ -11,6 +11,7 @@ from datetime import date
 from ..dependencies import get_db, get_dedup
 from ..repositories.fund_repo import FundRepository
 from ..services.fund_service import FundService
+from ..repositories.base import BaseRepository
 
 router = APIRouter(tags=["Funds"])
 
@@ -100,22 +101,23 @@ def get_fund_structure(cnpj: str = Path(...)):
 
 @router.get("/funds/{cnpj:path}/graph")
 def get_fund_graph(cnpj: str = Path(...)):
-    clean = cnpj.replace('.','').replace('/','').replace('-','')
+    clean = BaseRepository.normalize_cnpj(cnpj)
     df = _get_service().repo.db.read_sql("""
         SELECT 
             b.cnpj_fundo as source,
-            b.cnpj_fundo_invest as target,
-            b.nm_fundo_invest as target_name,
-            b.vl_merc_pos_final as value,
-            c.classe_ativo as target_classe
+            b.cnpj_fundo_cota as target,
+            MAX(b.nm_fundo_cota) as target_name,
+            SUM(b.vl_merc_pos_final) as value,
+            MAX(c.classe) as target_classe
         FROM cvm.cda_fi_blc_2 b
-        LEFT JOIN cvm.cadastro c ON c.cnpj_fundo = b.cnpj_fundo_invest
+        LEFT JOIN cvm.cadastro c ON c.cnpj_fundo = b.cnpj_fundo_cota
         WHERE b.cnpj_fundo = :cnpj
         AND b.dt_comptc = (
             SELECT MAX(dt_comptc) FROM cvm.cda_fi_blc_2 WHERE cnpj_fundo = :cnpj
         )
-        AND b.cnpj_fundo_invest IS NOT NULL
-        ORDER BY b.vl_merc_pos_final DESC
+        AND b.cnpj_fundo_cota IS NOT NULL
+        GROUP BY b.cnpj_fundo, b.cnpj_fundo_cota
+        ORDER BY value DESC
         LIMIT 50
     """, {"cnpj": clean})
     

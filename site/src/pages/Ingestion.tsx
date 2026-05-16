@@ -138,14 +138,14 @@ const IngestionPage: React.FC = () => {
                     : `${daysOutdated} dias`;
 
     return (
-        <div className="min-h-screen bg-[#151520] pb-20">
+        <div className="min-h-screen bg-[var(--bg-primary)] pb-20">
             {/* Header */}
-            <div className="sticky top-0 z-30 bg-[#151520]/80 backdrop-blur-md border-b border-gray-800 px-8 py-6">
+            <div className="sticky top-0 z-30 bg-[var(--bg-primary)]/80 backdrop-blur-md border-b border-[var(--border-subtle)] px-8 py-6">
                 <div className="max-w-[1400px] mx-auto flex items-center gap-3">
-                    <div className="p-2 bg-blue-500/10 rounded-lg">
-                        <Database className="w-6 h-6 text-blue-400" />
+                    <div className="p-2 bg-[var(--accent-light)] rounded-lg">
+                        <Database className="w-6 h-6 text-[var(--accent-primary)]" />
                     </div>
-                    <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-cyan-400">
+                    <h1 className="text-2xl font-bold text-[var(--text-primary)]">
                         Ingestão de Dados
                     </h1>
                 </div>
@@ -157,12 +157,12 @@ const IngestionPage: React.FC = () => {
 
                 <section>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-gray-400" />
+                        <Clock className="w-5 h-5 text-[var(--text-muted)]" />
                         Status dos Dados
                     </h2>
 
                     {loading ? (
-                        <div className="text-gray-400">Carregando...</div>
+                        <div className="text-[var(--text-muted)]">Carregando...</div>
                     ) : status ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                             <StatusCard
@@ -191,7 +191,7 @@ const IngestionPage: React.FC = () => {
                             />
                         </div>
                     ) : (
-                        <div className="text-red-400">Erro ao carregar status.</div>
+                        <div className="text-[var(--negative)]">Erro ao carregar status.</div>
                     )}
                 </section>
 
@@ -199,12 +199,12 @@ const IngestionPage: React.FC = () => {
 
                 <section>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                        <RefreshCw className="w-5 h-5 text-gray-400" />
+                        <RefreshCw className="w-5 h-5 text-[var(--text-muted)]" />
                         Atualizar Dados
                     </h2>
 
-                    <div className="bg-[#1e1e2d] border border-gray-700/50 rounded-xl p-6">
-                        <p className="text-gray-400 text-sm mb-4">
+                    <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-6">
+                        <p className="text-[var(--text-muted)] text-sm mb-4">
                             Executa o pipeline incremental de atualização: download, ingestão, atualização de views e métricas.
                             Nenhum dado existente é removido.
                         </p>
@@ -215,8 +215,8 @@ const IngestionPage: React.FC = () => {
                             className={`
                                 inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium text-sm transition-all
                                 ${running
-                                    ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
-                                    : 'bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/20'
+                                    ? 'bg-[var(--bg-sunken)] text-[var(--text-muted)] cursor-not-allowed'
+                                    : 'bg-[var(--accent-primary)] hover:bg-[var(--accent-hover)] text-white shadow-lg'
                                 }
                             `}
                         >
@@ -235,23 +235,23 @@ const IngestionPage: React.FC = () => {
 
                         {/* Terminal-style log output */}
                         {logs.length > 0 && (
-                            <div className="mt-4 bg-[#0d0d1a] border border-gray-800 rounded-lg p-4 font-mono text-xs leading-relaxed max-h-96 overflow-y-auto">
+                            <div className="mt-4 bg-[var(--bg-sunken)] border border-[var(--border-subtle)] rounded-lg p-4 font-mono text-xs leading-relaxed max-h-96 overflow-y-auto">
                                 {logs.map((line, i) => (
                                     <div
                                         key={i}
                                         className={
                                             line.startsWith('❌')
-                                                ? 'text-red-400'
+                                                ? 'text-[var(--negative)]'
                                                 : line.startsWith('✅')
-                                                    ? 'text-emerald-400'
+                                                    ? 'text-[var(--positive)]'
                                                     : line.startsWith('ℹ️')
-                                                        ? 'text-blue-400'
+                                                        ? 'text-[var(--cvm-color)]'
                                                         : line.startsWith('[ERROR]')
-                                                            ? 'text-red-400'
+                                                            ? 'text-[var(--negative)]'
                                                             : line.startsWith('[OK]')
-                                                                ? 'text-emerald-400'
+                                                                ? 'text-[var(--positive)]'
                                                                 : line.startsWith('STEP')
-                                                                    ? 'text-yellow-400 font-bold'
+                                                                    ? 'text-[var(--accent-primary)] font-bold'
                                                                     : 'text-[var(--text-secondary)]'
                                         }
                                     >
@@ -268,21 +268,21 @@ const IngestionPage: React.FC = () => {
 
                 <section>
                     <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
-                        <History className="w-5 h-5 text-gray-400" />
+                        <History className="w-5 h-5 text-[var(--text-muted)]" />
                         Histórico de Downloads
                     </h2>
 
                     {historyLoading ? (
-                        <div className="text-gray-400">Carregando...</div>
+                        <div className="text-[var(--text-muted)]">Carregando...</div>
                     ) : history.length === 0 ? (
-                        <div className="bg-[#1e1e2d] border border-gray-700/50 rounded-xl p-6 text-gray-400 text-sm">
+                        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-6 text-[var(--text-muted)] text-sm">
                             Nenhum download registrado. Execute uma atualização para começar.
                         </div>
                     ) : (
-                        <div className="bg-[#1e1e2d] border border-gray-700/50 rounded-xl overflow-hidden">
+                        <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className="border-b border-gray-700/50 text-gray-400">
+                                    <tr className="border-b border-[var(--border-subtle)] text-[var(--text-muted)]">
                                         <th className="text-left px-4 py-3 font-medium">Arquivo</th>
                                         <th className="text-left px-4 py-3 font-medium">Caminho</th>
                                         <th className="text-left px-4 py-3 font-medium">Data</th>
@@ -292,16 +292,16 @@ const IngestionPage: React.FC = () => {
                                     {history.map((entry, i) => (
                                         <tr
                                             key={i}
-                                            className="border-b border-gray-800/50 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
+                                            className="border-b border-[var(--border-subtle)]/50 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
                                         >
                                             <td className="px-4 py-3 flex items-center gap-2">
-                                                <Download className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                                <Download className="w-3.5 h-3.5 text-[var(--accent-primary)] shrink-0" />
                                                 {entry.file_name}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-500 font-mono text-xs">
+                                            <td className="px-4 py-3 text-[var(--text-muted)] font-mono text-xs">
                                                 {entry.relative_path}
                                             </td>
-                                            <td className="px-4 py-3 text-gray-400">
+                                            <td className="px-4 py-3 text-[var(--text-muted)]">
                                                 {entry.downloaded_at}
                                             </td>
                                         </tr>
@@ -327,9 +327,9 @@ interface StatusCardProps {
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({ label, value, badge, badgeColor }) => (
-    <div className="bg-[#1e1e2d] border border-gray-700/50 rounded-xl p-5 space-y-2">
-        <div className="text-gray-400 text-xs uppercase tracking-wider">{label}</div>
-        <div className="text-white text-xl font-semibold">{value}</div>
+    <div className="bg-[var(--bg-secondary)] border border-[var(--border-subtle)] rounded-xl p-5 space-y-2">
+        <div className="text-[var(--text-muted)] text-xs uppercase tracking-wider">{label}</div>
+        <div className="text-[var(--text-primary)] text-xl font-semibold">{value}</div>
         <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium text-white ${badgeColor}`}>
             {badge}
         </span>
