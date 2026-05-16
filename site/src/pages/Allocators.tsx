@@ -34,7 +34,7 @@ const FlowSummary = ({ data }: { data: any[] }) => {
     if (!data || data.length === 0) return null;
 
     return (
-        <Card className="bg-slate-900/50 border-slate-800 mb-6">
+        <Card className="bg-slate-900/50 border-[var(--border-subtle)] mb-6">
             <CardContent className="pt-6">
                 <div className="h-[120px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -48,7 +48,7 @@ const FlowSummary = ({ data }: { data: any[] }) => {
                                     if (!active || !payload || !payload[0]) return null;
                                     const val = Number(payload[0].value);
                                     return (
-                                        <div className="bg-slate-900 border border-slate-700 p-2 rounded text-xs text-slate-200">
+                                        <div className="bg-slate-900 border border-[var(--border-default)] p-2 rounded text-xs text-[var(--text-primary)]">
                                             <span className="font-semibold">Fluxo Líquido:</span> {formatCurrency(val)}
                                         </div>
                                     );
@@ -85,9 +85,9 @@ const FlowPositionTab = ({ data }: any) => {
         <div className="space-y-6 animate-in fade-in">
             <div className="grid grid-cols-1 gap-6">
                 {/* Gráfico 1: Posição Mês a Mês */}
-                <Card className="bg-slate-900/50 border-slate-800">
+                <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                     <CardHeader>
-                        <CardTitle className="text-lg text-slate-200">Evolução Patrimonial</CardTitle>
+                        <CardTitle className="text-lg text-[var(--text-primary)]">Evolução Patrimonial</CardTitle>
                         <CardDescription>Histórico de valor sob gestão</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[300px]">
@@ -113,20 +113,20 @@ const FlowPositionTab = ({ data }: any) => {
                 </Card>
 
                 {/* Gráfico 2: Segmentação de Fluxo (Local State Switch) */}
-                <Card className="bg-slate-900/50 border-slate-800">
+                <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <div>
-                            <CardTitle className="text-lg text-slate-200">Fluxo ({localWindow} Meses)</CardTitle>
+                            <CardTitle className="text-lg text-[var(--text-primary)]">Fluxo ({localWindow} Meses)</CardTitle>
                             <CardDescription>Distribuição de captação líquida</CardDescription>
                         </div>
-                        <div className="flex gap-1 bg-slate-950 p-1 rounded-md border border-slate-800">
+                        <div className="flex gap-1 bg-slate-950 p-1 rounded-md border border-[var(--border-subtle)]">
                             {WINDOWS.map(w => (
                                 <button
                                     key={w}
                                     onClick={() => setLocalWindow(w)}
                                     className={cn(
                                         "px-3 py-1 text-xs rounded transition-all",
-                                        localWindow === w ? "bg-slate-800 text-blue-400 font-medium shadow-sm" : "text-slate-500 hover:text-slate-300"
+                                        localWindow === w ? "bg-[var(--bg-elevated)] text-blue-400 font-medium shadow-sm" : "text-slate-500 hover:text-[var(--text-secondary)]"
                                     )}
                                 >
                                     {w}M
@@ -204,9 +204,9 @@ const BoxPlotSection = ({ data, title, color, unit = '%' }: any) => {
     const pad = (maxV - minV) * 0.1;
 
     return (
-        <Card className="bg-slate-900/50 border-slate-800">
-            <CardHeader className="py-2 px-4 border-b border-slate-800/50">
-                <CardTitle className="text-sm font-medium text-slate-300">{title}</CardTitle>
+        <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
+            <CardHeader className="py-2 px-4 border-b border-[var(--border-subtle)]/50">
+                <CardTitle className="text-sm font-medium text-[var(--text-secondary)]">{title}</CardTitle>
             </CardHeader>
             <CardContent className="h-[200px] p-2">
                 <ResponsiveContainer width="100%" height="100%">
@@ -219,18 +219,18 @@ const BoxPlotSection = ({ data, title, color, unit = '%' }: any) => {
                                 if (!active || !payload || !payload[0]) return null;
                                 const d = payload[0].payload;
                                 return (
-                                    <div className="bg-slate-950 border border-slate-700 p-2 rounded text-xs z-50 shadow-xl">
-                                        <p className="font-bold mb-1 text-slate-200">{label}</p>
+                                    <div className="bg-slate-950 border border-[var(--border-default)] p-2 rounded text-xs z-50 shadow-xl">
+                                        <p className="font-bold mb-1 text-[var(--text-primary)]">{label}</p>
                                         <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                            <span className="text-slate-400">Max:</span> <span className="text-right">{d.max?.toFixed(2)}</span>
-                                            <span className="text-slate-400">Q3:</span> <span className="text-right">{d.q3?.toFixed(2)}</span>
-                                            <span className="text-slate-400 font-bold">Med:</span> <span className="text-right font-bold">{d.median?.toFixed(2)}</span>
-                                            <span className="text-slate-400">Q1:</span> <span className="text-right">{d.q1?.toFixed(2)}</span>
-                                            <span className="text-slate-400">Min:</span> <span className="text-right">{d.min?.toFixed(2)}</span>
+                                            <span className="text-[var(--text-muted)]">Max:</span> <span className="text-right">{d.max?.toFixed(2)}</span>
+                                            <span className="text-[var(--text-muted)]">Q3:</span> <span className="text-right">{d.q3?.toFixed(2)}</span>
+                                            <span className="text-[var(--text-muted)] font-bold">Med:</span> <span className="text-right font-bold">{d.median?.toFixed(2)}</span>
+                                            <span className="text-[var(--text-muted)]">Q1:</span> <span className="text-right">{d.q1?.toFixed(2)}</span>
+                                            <span className="text-[var(--text-muted)]">Min:</span> <span className="text-right">{d.min?.toFixed(2)}</span>
                                             {d.highlight && (
                                                 <>
-                                                    <span className="text-blue-400 font-bold border-t border-slate-700 pt-1 mt-1">Destaque:</span>
-                                                    <span className="text-blue-400 font-bold text-right border-t border-slate-700 pt-1 mt-1">{d.highlight?.toFixed(2)}</span>
+                                                    <span className="text-blue-400 font-bold border-t border-[var(--border-default)] pt-1 mt-1">Destaque:</span>
+                                                    <span className="text-blue-400 font-bold text-right border-t border-[var(--border-default)] pt-1 mt-1">{d.highlight?.toFixed(2)}</span>
                                                 </>
                                             )}
                                         </div>
@@ -263,9 +263,9 @@ const PerformanceTab = ({ data }: any) => {
 
             {/* 2. Retorno por Janela + Scatter (2 colunas) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="bg-slate-900/50 border-slate-800">
+                <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                     <CardHeader>
-                        <CardTitle className="text-lg text-slate-200">Retorno vs CDI</CardTitle>
+                        <CardTitle className="text-lg text-[var(--text-primary)]">Retorno vs CDI</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -282,9 +282,9 @@ const PerformanceTab = ({ data }: any) => {
                     </CardContent>
                 </Card>
 
-                <Card className="bg-slate-900/50 border-slate-800">
+                <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                     <CardHeader>
-                        <CardTitle className="text-lg text-slate-200">Risco x Retorno (12M)</CardTitle>
+                        <CardTitle className="text-lg text-[var(--text-primary)]">Risco x Retorno (12M)</CardTitle>
                     </CardHeader>
                     <CardContent className="h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -331,9 +331,9 @@ const AllocationTab = ({ data }: any) => {
             </div>
 
             {/* 2. Evolução por Gestor (Stacked) */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200">Evolução de Alocação por Gestor (5 Anos)</CardTitle>
+                    <CardTitle className="text-lg text-[var(--text-primary)]">Evolução de Alocação por Gestor (5 Anos)</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[350px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -360,30 +360,30 @@ const AllocationTab = ({ data }: any) => {
             </Card>
 
             {/* 3. Snapshot Table (Top 20) */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200">Carteira Atual Detalhada</CardTitle>
+                    <CardTitle className="text-lg text-[var(--text-primary)]">Carteira Atual Detalhada</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
-                            <TableRow className="border-slate-800 hover:bg-transparent">
-                                <TableHead className="text-slate-400">Ativo</TableHead>
-                                <TableHead className="text-slate-400">Segmento/Peer</TableHead>
-                                <TableHead className="text-right text-slate-400">PL Alocado</TableHead>
-                                <TableHead className="text-right text-slate-400">% Parte</TableHead>
+                            <TableRow className="border-[var(--border-subtle)] hover:bg-transparent">
+                                <TableHead className="text-[var(--text-muted)]">Ativo</TableHead>
+                                <TableHead className="text-[var(--text-muted)]">Segmento/Peer</TableHead>
+                                <TableHead className="text-right text-[var(--text-muted)]">PL Alocado</TableHead>
+                                <TableHead className="text-right text-[var(--text-muted)]">% Parte</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {snapshot.map((row: any, i: number) => (
-                                <TableRow key={i} className="border-slate-800 hover:bg-slate-800/30">
-                                    <TableCell className="font-medium text-slate-200">{row.name}</TableCell>
+                                <TableRow key={i} className="border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)]/30">
+                                    <TableCell className="font-medium text-[var(--text-primary)]">{row.name}</TableCell>
                                     <TableCell className="text-slate-500">{row.desc}</TableCell>
-                                    <TableCell className="text-right font-mono text-slate-300">{formatCurrency(row.pl)}</TableCell>
+                                    <TableCell className="text-right font-mono text-[var(--text-secondary)]">{formatCurrency(row.pl)}</TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <span className="font-bold text-emerald-400">{row.value}%</span>
-                                            <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
+                                            <div className="w-16 h-1 bg-[var(--bg-elevated)] rounded-full overflow-hidden">
                                                 <div className="h-full bg-emerald-500" style={{ width: `${Math.min(row.value, 100)}%` }} />
                                             </div>
                                         </div>
@@ -450,11 +450,11 @@ const Allocators = () => {
     }, [selectedClient]);
 
     if (isLoadingFilters) {
-        return <div className="flex h-screen items-center justify-center bg-[#0F172A]"><Loader2 className="animate-spin text-emerald-500 w-10 h-10" /></div>;
+        return <div className="flex h-screen items-center justify-center bg-[var(--bg-primary)]"><Loader2 className="animate-spin text-emerald-500 w-10 h-10" /></div>;
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#0F172A] text-slate-100 p-6 overflow-hidden">
+        <div className="flex flex-col h-full bg-[var(--bg-primary)] text-slate-100 p-6 overflow-hidden">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0">
                 <div>
@@ -464,31 +464,31 @@ const Allocators = () => {
                     </h1>
                 </div>
 
-                <div className="flex items-center gap-3 bg-slate-900/80 p-2 rounded-lg border border-slate-800 shadow-xl">
+                <div className="flex items-center gap-3 bg-slate-900/80 p-2 rounded-lg border border-[var(--border-subtle)] shadow-xl">
                     <Select value={selectedClient} onValueChange={setSelectedClient}>
-                        <SelectTrigger className="w-[200px] bg-slate-950 border-slate-700 h-9 font-medium text-emerald-400">
+                        <SelectTrigger className="w-[200px] bg-slate-950 border-[var(--border-default)] h-9 font-medium text-emerald-400">
                             <SelectValue placeholder="Cliente" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             {filtersData?.clients.map((c: string) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                         </SelectContent>
                     </Select>
 
                     <Select value={selectedPeer} onValueChange={setSelectedPeer}>
-                        <SelectTrigger className="w-[160px] bg-slate-950 border-slate-700 h-9">
+                        <SelectTrigger className="w-[160px] bg-slate-950 border-[var(--border-default)] h-9">
                             <SelectValue placeholder="Peer" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             <SelectItem value="all">Todos Peers</SelectItem>
                             {filtersData?.peers.map((p: string) => <SelectItem key={p} value={p}>{p}</SelectItem>)}
                         </SelectContent>
                     </Select>
 
                     <Select value={selectedSegment} onValueChange={setSelectedSegment}>
-                        <SelectTrigger className="w-[180px] bg-slate-950 border-slate-700 h-9">
+                        <SelectTrigger className="w-[180px] bg-slate-950 border-[var(--border-default)] h-9">
                             <SelectValue placeholder="Segmento" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             <SelectItem value="all">Todos Segmentos</SelectItem>
                             {availableSegments.map((s: string) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                         </SelectContent>
@@ -498,7 +498,7 @@ const Allocators = () => {
 
             {/* Content Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
                     <TabsList className="bg-transparent p-0 w-fit">
                         <TabsTrigger value="fluxo" className="rounded-none border-b-2 border-transparent data-[state=active]:border-emerald-500 data-[state=active]:bg-transparent data-[state=active]:text-emerald-400 px-6">
                             Fluxo & Posição

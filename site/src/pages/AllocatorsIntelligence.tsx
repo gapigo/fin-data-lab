@@ -49,7 +49,7 @@ const AllocatorsIntelligence: React.FC = () => {
                         <div className="flex gap-8">
                             <button
                                 onClick={() => setActiveTab('flow')}
-                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'flow' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'flow' ? 'text-white' : 'text-gray-500 hover:text-[var(--text-secondary)]'
                                     }`}
                             >
                                 Fluxo & Posição
@@ -59,7 +59,7 @@ const AllocatorsIntelligence: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('performance')}
-                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'performance' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'performance' ? 'text-white' : 'text-gray-500 hover:text-[var(--text-secondary)]'
                                     }`}
                             >
                                 Performance
@@ -69,7 +69,7 @@ const AllocatorsIntelligence: React.FC = () => {
                             </button>
                             <button
                                 onClick={() => setActiveTab('allocation')}
-                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'allocation' ? 'text-white' : 'text-gray-500 hover:text-gray-300'
+                                className={`pb-2 text-sm font-medium transition-colors relative ${activeTab === 'allocation' ? 'text-white' : 'text-gray-500 hover:text-[var(--text-secondary)]'
                                     }`}
                             >
                                 Alocação

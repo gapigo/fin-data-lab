@@ -98,6 +98,48 @@ def get_fund_structure(cnpj: str = Path(...)):
     return result
 
 
+@router.get("/funds/{cnpj:path}/graph")
+def get_fund_graph(cnpj: str = Path(...)):
+    clean = cnpj.replace('.','').replace('/','').replace('-','')
+    df = _get_service().repo.db.read_sql("""
+        SELECT 
+            b.cnpj_fundo as source,
+            b.cnpj_fundo_invest as target,
+            b.nm_fundo_invest as target_name,
+            b.vl_merc_pos_final as value,
+            c.classe_ativo as target_classe
+        FROM cvm.cda_fi_blc_2 b
+        LEFT JOIN cvm.cadastro c ON c.cnpj_fundo = b.cnpj_fundo_invest
+        WHERE b.cnpj_fundo = :cnpj
+        AND b.dt_comptc = (
+            SELECT MAX(dt_comptc) FROM cvm.cda_fi_blc_2 WHERE cnpj_fundo = :cnpj
+        )
+        AND b.cnpj_fundo_invest IS NOT NULL
+        ORDER BY b.vl_merc_pos_final DESC
+        LIMIT 50
+    """, {"cnpj": clean})
+    
+    nodes = [{"id": clean, "name": "", "pl": 0, "classe": "source", "isRoot": True}]
+    links = []
+    
+    total_value = df['value'].sum() if len(df) > 0 else 1
+    
+    for _, row in df.iterrows():
+        nodes.append({
+            "id": row['target'],
+            "name": row['target_name'] or row['target'],
+            "pl": float(row['value']),
+            "classe": row['target_classe'] or 'Outros'
+        })
+        links.append({
+            "source": clean,
+            "target": row['target'],
+            "weight": float(row['value']) / total_value if total_value > 0 else 0
+        })
+    
+    return {"nodes": nodes, "links": links}
+
+
 @router.get("/funds/{cnpj:path}/top-assets")
 def get_top_assets(cnpj: str = Path(...), limit: int = Query(10, le=50)):
     return _dedup_exec("fund_top_assets", f"cnpj={cnpj}", _get_service().get_top_assets, cnpj, limit)

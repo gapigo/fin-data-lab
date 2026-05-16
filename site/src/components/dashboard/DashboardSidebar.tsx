@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   BarChart3,
@@ -10,10 +11,9 @@ import {
   Bot,
   Download,
   Settings,
-  ChevronLeft,
-  ChevronRight,
   Sun,
   Moon,
+  Radar,
 } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { StatusIndicator } from '@/components/ui/StatusIndicator';
@@ -22,6 +22,9 @@ interface NavItem {
   id: string;
   label: string;
   icon: React.ReactNode;
+  to?: string;
+  onClick?: () => void;
+  badge?: number;
   pillar?: 'cvm' | 'acoes' | 'crypto';
 }
 
@@ -37,13 +40,15 @@ interface DashboardSidebarProps {
   showAnalytics?: boolean;
   viewMode?: string;
   onViewModeChange?: (mode: string) => void;
+  onAiClick?: () => void;
 }
 
 const SECTIONS: NavSection[] = [
   {
     title: 'DADOS',
     items: [
-      { id: 'fund-lab', label: 'CVM / Fundos', icon: <BarChart3 size={18} />, pillar: 'cvm' },
+      { id: 'fund-lab', label: 'CVM / Fundos', icon: <BarChart3 size={18} />, pillar: 'cvm', to: '/' },
+      { id: 'radar', label: 'Radar', icon: <Radar size={18} />, pillar: 'cvm', to: '/cvm/radar' },
       { id: 'acoes', label: 'Ações B3', icon: <TrendingUp size={18} />, pillar: 'acoes' },
       { id: 'crypto', label: 'Crypto', icon: <Bitcoin size={18} />, pillar: 'crypto' },
     ],
@@ -51,15 +56,15 @@ const SECTIONS: NavSection[] = [
   {
     title: 'WORKSPACE',
     items: [
-      { id: 'sql-console', label: 'SQL Console', icon: <Terminal size={18} /> },
-      { id: 'notebooks', label: 'Notebooks', icon: <BookOpen size={18} /> },
+      { id: 'sql-console', label: 'SQL Console', icon: <Terminal size={18} />, to: '/workspace/sql' },
+      { id: 'notebooks', label: 'Notebooks', icon: <BookOpen size={18} />, to: '/workspace/notebooks' },
       { id: 'ai-research', label: 'AI Research', icon: <Bot size={18} /> },
     ],
   },
   {
     title: 'SISTEMA',
     items: [
-      { id: 'ingestion', label: 'Ingestão', icon: <Download size={18} /> },
+      { id: 'ingestion', label: 'Ingestão', icon: <Download size={18} />, to: '/ingestion' },
       { id: 'banco', label: 'Banco', icon: <Database size={18} /> },
       { id: 'config', label: 'Config', icon: <Settings size={18} /> },
     ],
@@ -76,13 +81,38 @@ export const DashboardSidebar = ({
   collapsed,
   activeView,
   onViewChange,
+  onAiClick,
 }: DashboardSidebarProps) => {
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [anomalyCount, setAnomalyCount] = useState(0);
 
-  // Mock status data — will be replaced with real API data
+  useEffect(() => {
+    fetch('/api/radar/anomalies')
+      .then(r => r.json())
+      .then(data => {
+        const highs = (data.anomalies || []).filter((a: any) => a.severity === 'high').length;
+        setAnomalyCount(highs);
+      })
+      .catch(() => {});
+  }, []);
+
   const now = new Date();
   const yesterday = new Date(now.getTime() - 20 * 60 * 60 * 1000);
   const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+
+  const handleItemClick = (item: NavItem) => {
+    if (item.id === 'ai-research' && onAiClick) {
+      onAiClick();
+      return;
+    }
+    if (item.to) {
+      navigate(item.to);
+    } else {
+      onViewChange(item.id);
+    }
+  };
 
   return (
     <aside
@@ -91,7 +121,6 @@ export const DashboardSidebar = ({
         collapsed ? 'w-[var(--sidebar-collapsed)]' : 'w-[var(--sidebar-width)]'
       )}
     >
-      {/* Logo area */}
       <div className="flex items-center gap-3 px-4 h-14 border-b border-[var(--border-subtle)]">
         {!collapsed && (
           <>
@@ -106,7 +135,6 @@ export const DashboardSidebar = ({
         )}
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-3">
         {SECTIONS.map((section) => (
           <div key={section.title} className="mb-4">
@@ -119,13 +147,14 @@ export const DashboardSidebar = ({
             )}
             <ul className="space-y-0.5">
               {section.items.map((item) => {
-                const isActive = activeView === item.id;
+                const isActive = item.to ? location.pathname === item.to : activeView === item.id;
                 const pillarColor = item.pillar ? PILLAR_COLORS[item.pillar] : undefined;
+                const badge = item.id === 'radar' ? anomalyCount : undefined;
 
                 return (
                   <li key={item.id}>
                     <button
-                      onClick={() => onViewChange(item.id)}
+                      onClick={() => handleItemClick(item)}
                       className={cn(
                         'w-full flex items-center gap-3 px-4 py-2 text-sm transition-all duration-150 relative',
                         isActive
@@ -142,15 +171,16 @@ export const DashboardSidebar = ({
                       }
                       title={collapsed ? item.label : undefined}
                     >
-                      <span
-                        style={{
-                          color: pillarColor || 'var(--text-muted)',
-                        }}
-                      >
+                      <span style={{ color: pillarColor || 'var(--text-muted)' }}>
                         {item.icon}
                       </span>
                       {!collapsed && (
-                        <span className="truncate">{item.label}</span>
+                        <span className="truncate flex-1 text-left">{item.label}</span>
+                      )}
+                      {!collapsed && badge !== undefined && badge > 0 && (
+                        <span className="ml-auto text-[10px] bg-[var(--negative)] text-white rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                          {badge}
+                        </span>
                       )}
                     </button>
                   </li>
@@ -161,7 +191,6 @@ export const DashboardSidebar = ({
         ))}
       </nav>
 
-      {/* Bottom status area */}
       <div className="border-t border-[var(--border-subtle)] p-3 space-y-2">
         {!collapsed && (
           <>
@@ -169,7 +198,6 @@ export const DashboardSidebar = ({
               <StatusIndicator lastUpdate={yesterday} thresholds={{ green: 24, yellow: 48 }} />
               <StatusIndicator lastUpdate={twoDaysAgo} thresholds={{ green: 24, yellow: 48 }} />
             </div>
-
             <div className="flex items-center justify-between pt-2">
               <button
                 onClick={toggleTheme}
@@ -181,7 +209,7 @@ export const DashboardSidebar = ({
                   {theme === 'light' ? 'Escuro' : 'Claro'}
                 </span>
               </button>
-              <span className="text-[var(--text-muted)] text-xs">FDL v1.0</span>
+              <span className="text-[var(--text-muted)] text-xs">FDL v2.0</span>
             </div>
           </>
         )}

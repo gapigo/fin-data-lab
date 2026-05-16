@@ -40,16 +40,16 @@ export const ViewModeSelector = ({
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="w-10 h-10 rounded-lg hover:bg-slate-800 transition-colors"
+                        className="w-10 h-10 rounded-lg hover:bg-[var(--bg-elevated)] transition-colors"
                         title="Alterar modo de visualização"
                     >
-                        <Settings className="w-5 h-5 text-slate-400" />
+                        <Settings className="w-5 h-5 text-[var(--text-muted)]" />
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent
                     side="right"
                     align="start"
-                    className="w-72 p-2 bg-slate-900 border-slate-800 shadow-xl"
+                    className="w-72 p-2 bg-slate-900 border-[var(--border-subtle)] shadow-xl"
                 >
                     <ViewModeList
                         currentViewMode={currentViewMode}
@@ -66,7 +66,7 @@ export const ViewModeSelector = ({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 transition-all group">
+                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[var(--bg-elevated)]/50 hover:bg-[var(--bg-elevated)] border border-[var(--border-default)]/50 hover:border-slate-600 transition-all group">
                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500/20 to-blue-500/20 border border-emerald-500/30">
                         <Icon className="w-4 h-4 text-emerald-400" />
                     </div>
@@ -83,7 +83,7 @@ export const ViewModeSelector = ({
             <PopoverContent
                 side="top"
                 align="start"
-                className="w-[calc(100%-16px)] ml-2 p-2 bg-slate-900 border-slate-800 shadow-xl"
+                className="w-[calc(100%-16px)] ml-2 p-2 bg-slate-900 border-[var(--border-subtle)] shadow-xl"
             >
                 <ViewModeList
                     currentViewMode={currentViewMode}
@@ -105,7 +105,7 @@ interface ViewModeListProps {
 const ViewModeList = ({ currentViewMode, onViewModeChange }: ViewModeListProps) => {
     return (
         <div className="space-y-1">
-            <p className="text-xs text-slate-500 uppercase font-semibold px-2 pb-2 border-b border-slate-800 mb-2">
+            <p className="text-xs text-slate-500 uppercase font-semibold px-2 pb-2 border-b border-[var(--border-subtle)] mb-2">
                 Selecione o modo
             </p>
             {VIEW_MODES.map((mode) => {
@@ -120,14 +120,14 @@ const ViewModeList = ({ currentViewMode, onViewModeChange }: ViewModeListProps) 
                             "w-full flex items-start gap-3 px-3 py-3 rounded-lg transition-all text-left",
                             isActive
                                 ? "bg-emerald-500/10 border border-emerald-500/30"
-                                : "hover:bg-slate-800 border border-transparent"
+                                : "hover:bg-[var(--bg-elevated)] border border-transparent"
                         )}
                     >
                         <div className={cn(
                             "flex items-center justify-center w-8 h-8 rounded-lg shrink-0 mt-0.5",
                             isActive
                                 ? "bg-emerald-500/20 text-emerald-400"
-                                : "bg-slate-800 text-slate-400"
+                                : "bg-[var(--bg-elevated)] text-[var(--text-muted)]"
                         )}>
                             <Icon className="w-4 h-4" />
                         </div>

@@ -55,7 +55,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         const data = payload[0].payload; // Access full object
         return (
             <div className="bg-[#1e1e2d] border border-gray-700 p-3 rounded-lg shadow-xl text-xs">
-                <p className="text-gray-300 font-bold mb-2">{label}</p>
+                <p className="text-[var(--text-secondary)] font-bold mb-2">{label}</p>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     <span className="text-gray-500">Max:</span> <span className="text-white text-right">{data.max?.toFixed(2)}%</span>
                     <span className="text-gray-500">Q3:</span> <span className="text-emerald-400 text-right">{data.q3?.toFixed(2)}%</span>

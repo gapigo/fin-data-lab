@@ -29,7 +29,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
         return (
             <div className="bg-[#1e1e2d] border border-gray-700 p-3 rounded-lg shadow-xl text-xs">
-                <p className="text-gray-300 font-bold mb-2 border-b border-gray-700 pb-1">{label}</p>
+                <p className="text-[var(--text-secondary)] font-bold mb-2 border-b border-gray-700 pb-1">{label}</p>
                 <div className="flex flex-col gap-1">
                     {sorted.map((item: any, idx: number) => (
                         <div key={idx} className="flex justify-between gap-4 items-center">

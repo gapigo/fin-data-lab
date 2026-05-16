@@ -38,9 +38,10 @@ export const DashboardLayout = ({ children, activeView = 'home' }: DashboardLayo
                     collapsed={sidebarCollapsed}
                     activeView={activeView}
                     onViewChange={handleViewChange}
+                    onAiClick={() => window.dispatchEvent(new CustomEvent('fdl-ai-open'))}
                 />
 
-                <main className="flex-1 min-w-0 bg-slate-50/50">
+                <main className="flex-1 min-w-0 bg-[var(--bg-primary)]">
                     {children}
                 </main>
             </div>

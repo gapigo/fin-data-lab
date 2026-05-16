@@ -23,7 +23,7 @@ const CustomTooltip = ({ active, payload, label, formatValue }: any) => {
         const val = payload[0].value;
         return (
             <div className="bg-[#1e1e2d] border border-gray-700 p-3 rounded-lg shadow-xl">
-                <p className="text-gray-300 font-medium mb-1">{label}</p>
+                <p className="text-[var(--text-secondary)] font-medium mb-1">{label}</p>
                 <p className={`font-bold text-lg ${val >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                     {formatValue
                         ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(val)

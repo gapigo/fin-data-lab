@@ -64,7 +64,7 @@ export const FundPerformanceTable: React.FC<Props> = ({ funds, initialSelectedCn
                             <button
                                 key={f.cnpj}
                                 onClick={() => { setSelectedCnpj(f.cnpj); setIsOpen(false); }}
-                                className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-700 transition-colors ${selectedCnpj === f.cnpj ? 'bg-blue-500/10 text-blue-400' : 'text-gray-300'}`}
+                                className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-700 transition-colors ${selectedCnpj === f.cnpj ? 'bg-blue-500/10 text-blue-400' : 'text-[var(--text-secondary)]'}`}
                             >
                                 {f.name}
                             </button>
@@ -93,10 +93,10 @@ export const FundPerformanceTable: React.FC<Props> = ({ funds, initialSelectedCn
 
                             <div className="grid grid-cols-2 w-full text-xs gap-y-1">
                                 <div className="text-gray-500">Meta</div>
-                                <div className="text-right text-gray-300">{data.meta !== null ? `${data.meta.toFixed(2)}%` : '-'}</div>
+                                <div className="text-right text-[var(--text-secondary)]">{data.meta !== null ? `${data.meta.toFixed(2)}%` : '-'}</div>
 
                                 <div className="text-gray-500">Bench</div>
-                                <div className="text-right text-gray-300">{data.bench !== null ? `${data.bench.toFixed(2)}%` : '-'}</div>
+                                <div className="text-right text-[var(--text-secondary)]">{data.bench !== null ? `${data.bench.toFixed(2)}%` : '-'}</div>
                             </div>
 
                             {/* Status Indicator */}

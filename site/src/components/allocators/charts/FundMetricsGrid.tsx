@@ -24,16 +24,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
                     {item.bench && (
                         <div className="flex justify-between gap-4">
                             <span className="text-gray-400">CDI:</span>
-                            <span className="text-gray-300 font-mono">{(item.bench * 100).toFixed(2)}%</span>
+                            <span className="text-[var(--text-secondary)] font-mono">{(item.bench * 100).toFixed(2)}%</span>
                         </div>
                     )}
                     <div className="flex justify-between gap-4">
                         <span className="text-gray-400">Vol:</span>
-                        <span className="text-gray-300 font-mono">{(item.vol * 100).toFixed(2)}%</span>
+                        <span className="text-[var(--text-secondary)] font-mono">{(item.vol * 100).toFixed(2)}%</span>
                     </div>
                     <div className="flex justify-between gap-4">
                         <span className="text-gray-400">Sharpe:</span>
-                        <span className="text-gray-300 font-mono">{item.sharpe?.toFixed(2)}</span>
+                        <span className="text-[var(--text-secondary)] font-mono">{item.sharpe?.toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -55,7 +55,7 @@ const WindowChart = ({ window, items }: { window: string, items: FundDetailedMet
 
     return (
         <div className="h-[250px] w-full bg-[#1e1e2d] rounded-lg border border-gray-800 p-4">
-            <h4 className="text-sm font-semibold text-gray-300 mb-2">Retorno {window}</h4>
+            <h4 className="text-sm font-semibold text-[var(--text-secondary)] mb-2">Retorno {window}</h4>
             <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                     data={sortedItems}

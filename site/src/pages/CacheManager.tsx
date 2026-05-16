@@ -218,7 +218,7 @@ const CacheManager = () => {
                         </div>
                         <div>
                             <h1 className="text-2xl font-bold text-white">Gerenciador de Cache</h1>
-                            <p className="text-sm text-slate-400">Visualize e gerencie o cache do sistema</p>
+                            <p className="text-sm text-[var(--text-muted)]">Visualize e gerencie o cache do sistema</p>
                         </div>
                     </div>
                     <div className="flex gap-2">
@@ -227,7 +227,7 @@ const CacheManager = () => {
                             size="sm"
                             onClick={fetchCacheInfo}
                             disabled={loading}
-                            className="border-slate-700 text-slate-300"
+                            className="border-[var(--border-default)] text-[var(--text-secondary)]"
                         >
                             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                             Atualizar
@@ -267,7 +267,7 @@ const CacheManager = () => {
                 {/* Stats Overview */}
                 {cacheInfo && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                        <Card className="bg-slate-900/50 border-slate-800">
+                        <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-3">
                                     <HardDrive className="w-8 h-8 text-blue-400" />
@@ -278,7 +278,7 @@ const CacheManager = () => {
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-slate-900/50 border-slate-800">
+                        <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-3">
                                     <Database className="w-8 h-8 text-emerald-400" />
@@ -289,7 +289,7 @@ const CacheManager = () => {
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-slate-900/50 border-slate-800">
+                        <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-3">
                                     <Clock className="w-8 h-8 text-orange-400" />
@@ -300,7 +300,7 @@ const CacheManager = () => {
                                 </div>
                             </CardContent>
                         </Card>
-                        <Card className="bg-slate-900/50 border-slate-800">
+                        <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                             <CardContent className="p-4">
                                 <div className="flex items-center gap-3">
                                     <Server className="w-8 h-8 text-purple-400" />
@@ -316,16 +316,16 @@ const CacheManager = () => {
 
                 {/* Tabs */}
                 <Tabs defaultValue="backend" className="space-y-6">
-                    <TabsList className="bg-slate-900/50 border border-slate-800">
-                        <TabsTrigger value="backend" className="data-[state=active]:bg-slate-800">
+                    <TabsList className="bg-slate-900/50 border border-[var(--border-subtle)]">
+                        <TabsTrigger value="backend" className="data-[state=active]:bg-[var(--bg-elevated)]">
                             <Server className="w-4 h-4 mr-2" />
                             Backend
                         </TabsTrigger>
-                        <TabsTrigger value="frontend" className="data-[state=active]:bg-slate-800">
+                        <TabsTrigger value="frontend" className="data-[state=active]:bg-[var(--bg-elevated)]">
                             <Monitor className="w-4 h-4 mr-2" />
                             Frontend
                         </TabsTrigger>
-                        <TabsTrigger value="pending" className="data-[state=active]:bg-slate-800">
+                        <TabsTrigger value="pending" className="data-[state=active]:bg-[var(--bg-elevated)]">
                             <Clock className="w-4 h-4 mr-2" />
                             Pendentes
                         </TabsTrigger>
@@ -334,7 +334,7 @@ const CacheManager = () => {
                     {/* Backend Tab */}
                     <TabsContent value="backend" className="space-y-6">
                         {/* File Cache */}
-                        <Card className="bg-slate-900/30 border-slate-800">
+                        <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle className="text-white flex items-center gap-2">
@@ -350,7 +350,7 @@ const CacheManager = () => {
                                     size="sm"
                                     onClick={clearFileCache}
                                     disabled={actionLoading === 'files'}
-                                    className="border-slate-700"
+                                    className="border-[var(--border-default)]"
                                 >
                                     {actionLoading === 'files' ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -367,7 +367,7 @@ const CacheManager = () => {
                                         {cacheInfo?.file_cache.files.map((file) => (
                                             <div
                                                 key={file.filename}
-                                                className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"
+                                                className="flex items-center justify-between p-3 bg-[var(--bg-elevated)]/50 rounded-lg"
                                             >
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-white truncate">{file.function}</p>
@@ -396,7 +396,7 @@ const CacheManager = () => {
                         </Card>
 
                         {/* Memory Cache */}
-                        <Card className="bg-slate-900/30 border-slate-800">
+                        <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle className="text-white flex items-center gap-2">
@@ -412,7 +412,7 @@ const CacheManager = () => {
                                     size="sm"
                                     onClick={clearMemoryCache}
                                     disabled={actionLoading === 'memory'}
-                                    className="border-slate-700"
+                                    className="border-[var(--border-default)]"
                                 >
                                     {actionLoading === 'memory' ? (
                                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -429,7 +429,7 @@ const CacheManager = () => {
                                         {cacheInfo?.memory_cache.map((entry) => (
                                             <div
                                                 key={entry.key}
-                                                className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"
+                                                className="flex items-center justify-between p-3 bg-[var(--bg-elevated)]/50 rounded-lg"
                                             >
                                                 <div className="flex-1 min-w-0">
                                                     <p className="text-sm font-medium text-white truncate">{entry.key}</p>
@@ -460,7 +460,7 @@ const CacheManager = () => {
 
                     {/* Frontend Tab */}
                     <TabsContent value="frontend">
-                        <Card className="bg-slate-900/30 border-slate-800">
+                        <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                             <CardHeader className="flex flex-row items-center justify-between">
                                 <div>
                                     <CardTitle className="text-white flex items-center gap-2">
@@ -475,7 +475,7 @@ const CacheManager = () => {
                                     variant="outline"
                                     size="sm"
                                     onClick={clearFrontendCache}
-                                    className="border-slate-700"
+                                    className="border-[var(--border-default)]"
                                 >
                                     <Trash2 className="w-4 h-4 mr-2" />
                                     Limpar
@@ -484,7 +484,7 @@ const CacheManager = () => {
                             <CardContent>
                                 <div className="text-center py-8">
                                     <Monitor className="w-12 h-12 text-slate-600 mx-auto mb-4" />
-                                    <p className="text-slate-400">
+                                    <p className="text-[var(--text-muted)]">
                                         O cache do frontend é armazenado localmente no navegador.
                                     </p>
                                     <p className="text-sm text-slate-500 mt-2">
@@ -497,7 +497,7 @@ const CacheManager = () => {
 
                     {/* Pending Requests Tab */}
                     <TabsContent value="pending">
-                        <Card className="bg-slate-900/30 border-slate-800">
+                        <Card className="bg-[var(--bg-secondary)] border-[var(--border-subtle)]">
                             <CardHeader>
                                 <CardTitle className="text-white flex items-center gap-2">
                                     <Clock className="w-5 h-5 text-orange-400" />
@@ -511,20 +511,20 @@ const CacheManager = () => {
                                 {cacheInfo?.pending_requests.length === 0 ? (
                                     <div className="text-center py-8">
                                         <CheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-                                        <p className="text-slate-400">Nenhuma requisição em andamento</p>
+                                        <p className="text-[var(--text-muted)]">Nenhuma requisição em andamento</p>
                                     </div>
                                 ) : (
                                     <div className="space-y-2">
                                         {cacheInfo?.pending_requests.map((req) => (
                                             <div
                                                 key={req.key}
-                                                className="p-4 bg-slate-800/50 rounded-lg border-l-4 border-orange-500"
+                                                className="p-4 bg-[var(--bg-elevated)]/50 rounded-lg border-l-4 border-orange-500"
                                             >
                                                 <div className="flex items-center justify-between mb-2">
                                                     <Badge variant="secondary" className="bg-orange-500/20 text-orange-300">
                                                         {req.endpoint}
                                                     </Badge>
-                                                    <span className="text-sm text-slate-400">
+                                                    <span className="text-sm text-[var(--text-muted)]">
                                                         {formatDuration(req.running_for)}
                                                     </span>
                                                 </div>
@@ -535,8 +535,8 @@ const CacheManager = () => {
                                 )}
 
                                 {/* Dedup Stats */}
-                                <div className="mt-6 p-4 bg-slate-800/30 rounded-lg">
-                                    <h4 className="text-sm font-medium text-slate-300 mb-3">Estatísticas de Deduplicação</h4>
+                                <div className="mt-6 p-4 bg-[var(--bg-elevated)]/30 rounded-lg">
+                                    <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-3">Estatísticas de Deduplicação</h4>
                                     <div className="grid grid-cols-3 gap-4 text-center">
                                         <div>
                                             <p className="text-xl font-bold text-emerald-400">{cacheInfo?.deduplication_stats.completed_count}</p>

@@ -62,7 +62,7 @@
     --transition-base: 150ms ease;
     --transition-slow: 300ms ease;
 
-    /* === Shadcn-compatible HSL variables (light mode) === */
+    /* === LEGACY SHADCN HSL — kept for component compatibility === */
     --background: 40 14% 98%;
     --foreground: 36 13% 9%;
     --card: 0 0% 100%;
@@ -109,6 +109,7 @@
 
     --glass: 40 14% 98% / 0.8;
     --glass-border: 36 10% 89% / 0.5;
+    /* === END LEGACY SHADCN HSL === */
   }
 
   [data-theme="dark"] {

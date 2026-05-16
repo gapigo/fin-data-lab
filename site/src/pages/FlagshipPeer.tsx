@@ -161,7 +161,7 @@ const EditableCell = ({ value, onSave, className = '' }: { value: string; onSave
         return <Input autoFocus value={val} onChange={e => setVal(e.target.value)} onBlur={handleSave} onKeyDown={handleKeyDown} className={cn("h-7 text-xs bg-slate-950 border-blue-500", className)} />;
     }
     return (
-        <div onClick={() => setEditing(true)} className={cn("cursor-text px-1 py-0.5 rounded hover:bg-slate-800 truncate min-h-[24px] border border-transparent hover:border-slate-700/50", className)}>
+        <div onClick={() => setEditing(true)} className={cn("cursor-text px-1 py-0.5 rounded hover:bg-[var(--bg-elevated)] truncate min-h-[24px] border border-transparent hover:border-[var(--border-default)]/50", className)}>
             {value || <span className="text-slate-600 italic">Clique para editar</span>}
         </div>
     );
@@ -176,21 +176,21 @@ const PeerSelector = ({ value, peers, onSelect }: { value?: string; peers: typeo
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <button className="flex items-center gap-1.5 px-2 py-1 rounded text-xs border border-transparent hover:border-slate-700 transition-colors">
+                <button className="flex items-center gap-1.5 px-2 py-1 rounded text-xs border border-transparent hover:border-[var(--border-default)] transition-colors">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: current?.color || '#666' }} />
-                    <span className="text-slate-300">{current?.name || 'Selecionar'}</span>
+                    <span className="text-[var(--text-secondary)]">{current?.name || 'Selecionar'}</span>
                     <ChevronDown size={12} className="text-slate-500" />
                 </button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2 bg-slate-900 border-slate-700">
+            <PopoverContent className="w-64 p-2 bg-slate-900 border-[var(--border-default)]">
                 <div className="relative mb-2">
                     <Search className="absolute left-2 top-2 h-4 w-4 text-slate-500" />
-                    <Input placeholder="Buscar peer..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 bg-slate-950 border-slate-800 text-xs" />
+                    <Input placeholder="Buscar peer..." value={search} onChange={e => setSearch(e.target.value)} className="pl-8 h-8 bg-slate-950 border-[var(--border-subtle)] text-xs" />
                 </div>
                 <ScrollArea className="max-h-48">
                     {filtered.map(p => (
                         <button key={p.id} onClick={() => { onSelect(p.name); setOpen(false); setSearch(''); }}
-                            className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-slate-800 transition-colors", value === p.name && "bg-slate-800")}>
+                            className={cn("w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-[var(--bg-elevated)] transition-colors", value === p.name && "bg-[var(--bg-elevated)]")}>
                             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: p.color }} />
                             <span>{p.name}</span>
                             {value === p.name && <Check size={14} className="ml-auto text-emerald-400" />}
@@ -236,23 +236,23 @@ const AddFundDialog = ({ open, onOpenChange, onAdd, adding }: { open: boolean; o
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-slate-900 border-slate-800 max-w-lg">
+            <DialogContent className="bg-slate-900 border-[var(--border-subtle)] max-w-lg">
                 <DialogHeader>
                     <DialogTitle className="text-slate-100">Adicionar Fundo ao Peer Group</DialogTitle>
-                    <DialogDescription className="text-slate-400">Busque pelo CNPJ ou nome do fundo</DialogDescription>
+                    <DialogDescription className="text-[var(--text-muted)]">Busque pelo CNPJ ou nome do fundo</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     <div className="relative">
                         <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500" />
-                        <Input placeholder="Digite CNPJ ou nome..." value={search} onChange={e => { setSearch(e.target.value); setSelected(null); }} className="pl-10 bg-slate-950 border-slate-700" />
+                        <Input placeholder="Digite CNPJ ou nome..." value={search} onChange={e => { setSearch(e.target.value); setSelected(null); }} className="pl-10 bg-slate-950 border-[var(--border-default)]" />
                     </div>
 
                     {isLoading && <div className="text-center py-4"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500" /></div>}
 
                     {results && !selected && (
-                        <ScrollArea className="max-h-48 border border-slate-800 rounded-lg">
+                        <ScrollArea className="max-h-48 border border-[var(--border-subtle)] rounded-lg">
                             {results.map((f: any) => (
-                                <button key={f.cnpj_fundo} onClick={() => setSelected(f)} className="w-full flex items-center gap-3 p-3 hover:bg-slate-800 border-b border-slate-800 last:border-0 text-left">
+                                <button key={f.cnpj_fundo} onClick={() => setSelected(f)} className="w-full flex items-center gap-3 p-3 hover:bg-[var(--bg-elevated)] border-b border-[var(--border-subtle)] last:border-0 text-left">
                                     <Building2 size={20} className="text-slate-500" />
                                     <div className="flex-1 min-w-0">
                                         <p className="text-sm font-medium text-white truncate">{f.denom_social}</p>
@@ -272,7 +272,7 @@ const AddFundDialog = ({ open, onOpenChange, onAdd, adding }: { open: boolean; o
                                     <div className="w-10 h-10 rounded-lg bg-emerald-500/20 flex items-center justify-center"><Check className="text-emerald-400" /></div>
                                     <div className="flex-1">
                                         <p className="font-medium text-white">{selected.denom_social}</p>
-                                        <p className="text-xs text-slate-400">{selected.cnpj_fundo} • {selected.gestor}</p>
+                                        <p className="text-xs text-[var(--text-muted)]">{selected.cnpj_fundo} • {selected.gestor}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -295,9 +295,9 @@ const CreateGroupDialog = ({ open, onOpenChange, onCreate, creating }: { open: b
     const [name, setName] = useState('');
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="bg-slate-900 border-slate-800 max-w-sm">
+            <DialogContent className="bg-slate-900 border-[var(--border-subtle)] max-w-sm">
                 <DialogHeader><DialogTitle className="text-slate-100">Criar Novo Grupo</DialogTitle></DialogHeader>
-                <Input placeholder="Nome do grupo..." value={name} onChange={e => setName(e.target.value)} className="bg-slate-950 border-slate-700" />
+                <Input placeholder="Nome do grupo..." value={name} onChange={e => setName(e.target.value)} className="bg-slate-950 border-[var(--border-default)]" />
                 <DialogFooter>
                     <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancelar</Button>
                     <Button disabled={!name.trim() || creating} onClick={() => { onCreate(name); setName(''); }} className="bg-blue-600 hover:bg-blue-700">
@@ -314,17 +314,17 @@ const TreemapTooltip = ({ active, payload, type, viewBy }: any) => {
     if (!active || !payload?.[0]) return null;
     const data = payload[0].payload;
     return (
-        <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl min-w-[240px] max-w-[320px]">
+        <div className="bg-slate-900 border border-[var(--border-default)] rounded-lg p-3 shadow-xl min-w-[240px] max-w-[320px]">
             <p className="font-bold text-white mb-2">{data.name}</p>
             <p className={cn("text-sm mb-3", type === 'captacao' ? 'text-emerald-400' : 'text-red-400')}>Total: R$ {formatKMB(data.size)}</p>
             {viewBy === 'gestor' && data.funds?.length > 0 && (
-                <div className="border-t border-slate-800 pt-2">
+                <div className="border-t border-[var(--border-subtle)] pt-2">
                     <div className="grid grid-cols-[1fr_60px_70px_90px] gap-1 text-[10px] text-slate-500 uppercase mb-1 px-1">
                         <span>Fundo</span><span>Peer</span><span className="text-right">Valor</span><span className="text-right">CNPJ</span>
                     </div>
                     {data.funds.map((f: any, i: number) => (
-                        <div key={i} className="grid grid-cols-[1fr_60px_70px_90px] gap-1 text-xs py-1 border-b border-slate-800/50 last:border-0 px-1">
-                            <span className="text-slate-300 truncate">{f.nickname}</span>
+                        <div key={i} className="grid grid-cols-[1fr_60px_70px_90px] gap-1 text-xs py-1 border-b border-[var(--border-subtle)]/50 last:border-0 px-1">
+                            <span className="text-[var(--text-secondary)] truncate">{f.nickname}</span>
                             <span className="text-slate-500 truncate">{f.peer}</span>
                             <span className={cn("text-right", type === 'captacao' ? 'text-emerald-400' : 'text-red-400')}>{formatKMB(f.value)}</span>
                             <span className="text-right text-slate-500 font-mono text-[9px]">{f.cnpj.split('/')[0]}</span>
@@ -354,13 +354,13 @@ const ColumnSelector = ({ columns, visibleIds, visibleColumnsRef, onToggle }: { 
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="border-slate-700 text-slate-300"><Settings2 size={14} className="mr-2" />Colunas</Button>
+                <Button variant="outline" size="sm" className="border-[var(--border-default)] text-[var(--text-secondary)]"><Settings2 size={14} className="mr-2" />Colunas</Button>
             </PopoverTrigger>
-            <PopoverContent className="w-64 p-2 bg-slate-900 border-slate-700">
-                <p className="text-xs text-slate-400 uppercase mb-2 px-2">Selecionar Colunas</p>
+            <PopoverContent className="w-64 p-2 bg-slate-900 border-[var(--border-default)]">
+                <p className="text-xs text-[var(--text-muted)] uppercase mb-2 px-2">Selecionar Colunas</p>
                 <ScrollArea className="max-h-64">
                     {columns.map(col => (
-                        <div key={col.id} onClick={() => onToggle(col.id)} className="flex items-center gap-2 px-2 py-1.5 hover:bg-slate-800 rounded cursor-pointer">
+                        <div key={col.id} onClick={() => onToggle(col.id)} className="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-elevated)] rounded cursor-pointer">
                             <Checkbox checked={visibleIds.includes(col.id)} className="border-slate-600" />
                             <span className="text-sm">{col.label}</span>
                         </div>
@@ -511,20 +511,20 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
 
     const renderPerfCell = (col: typeof ALL_COLUMNS[0], row: any) => {
         const val = row[col.id];
-        if (col.id === 'cnpj') return <span className="font-mono text-xs text-slate-400">{val}</span>;
+        if (col.id === 'cnpj') return <span className="font-mono text-xs text-[var(--text-muted)]">{val}</span>;
         if (col.id.startsWith('q')) return <Badge className={cn("text-xs", getQuartileColor(val))}>{val}º</Badge>;
         if (col.id.startsWith('b')) return <span className={getBenchColor(val)}>{val.toFixed(1)}%</span>;
         if (col.id === 'sharpe') return <span className={getSharpeColor(val)}>{val.toFixed(2)}</span>;
         if (col.id === 'flow_month' || col.id === 'flow_diff') return <span className={val >= 0 ? 'text-emerald-400' : 'text-red-400'}>{formatKMB(val)}</span>;
         if (col.id === 'pl') return <span className="text-emerald-400 font-mono">{formatKMB(row.pl)}</span>;
-        if (col.id === 'pl_percent') return <span className="text-slate-300">{val.toFixed(1)}%</span>;
-        if (col.id === 'vol12m') return <span className="text-slate-300">{val.toFixed(1)}%</span>;
+        if (col.id === 'pl_percent') return <span className="text-[var(--text-secondary)]">{val.toFixed(1)}%</span>;
+        if (col.id === 'vol12m') return <span className="text-[var(--text-secondary)]">{val.toFixed(1)}%</span>;
         if (col.id === 'drawdown') return <span className="text-red-400">{val.toFixed(1)}%</span>;
         return val;
     };
 
     return (
-        <div className="flex flex-col h-full bg-[#0F172A] text-slate-100 p-6 overflow-hidden">
+        <div className="flex flex-col h-full bg-[var(--bg-primary)] text-slate-100 p-6 overflow-hidden">
             {/* SAVING INDICATOR */}
             {(hasPendingChanges || isFetchingDetails) && (
                 <div className="fixed top-4 right-4 z-50 bg-blue-600 text-white px-4 py-2 rounded-full shadow-lg flex items-center gap-2 animate-in fade-in slide-in-from-top-4">
@@ -546,20 +546,20 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
                             </Badge>
                         )}
                     </div>
-                    <p className="text-sm text-slate-400">Gerencie e analise seus grupos de fundos</p>
+                    <p className="text-sm text-[var(--text-muted)]">Gerencie e analise seus grupos de fundos</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Select value={activePeerGroupId?.toString()} onValueChange={(v) => setActivePeerGroupId(parseInt(v))}>
-                        <SelectTrigger className="w-[240px] bg-slate-900 border-slate-700">
+                        <SelectTrigger className="w-[240px] bg-slate-900 border-[var(--border-default)]">
                             <SelectValue placeholder="Selecione um grupo" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             {peerGroups.map(pg => (
                                 <SelectItem key={pg.id} value={pg.id.toString()}>
                                     <div className="flex items-center gap-2">{pg.name}</div>
                                 </SelectItem>
                             ))}
-                            <DropdownMenuSeparator className="bg-slate-800" />
+                            <DropdownMenuSeparator className="bg-[var(--bg-elevated)]" />
                             <Button variant="ghost" size="sm" className="w-full justify-start text-xs mt-1" onClick={() => setCreateGroupOpen(true)}>
                                 <Plus size={14} className="mr-2" />Criar novo grupo
                             </Button>
@@ -570,7 +570,7 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
 
             {/* TABS */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-                <TabsList className="bg-slate-900/50 p-1 mb-4 w-fit border border-slate-800/50">
+                <TabsList className="bg-slate-900/50 p-1 mb-4 w-fit border border-[var(--border-subtle)]/50">
                     <TabsTrigger value="peers" className="data-[state=active]:bg-blue-600">Peers & Categorias</TabsTrigger>
                     <TabsTrigger value="flow" className="data-[state=active]:bg-blue-600">Fluxo & Gestoras</TabsTrigger>
                     <TabsTrigger value="performance" className="data-[state=active]:bg-blue-600">Performance Detalhada</TabsTrigger>
@@ -578,27 +578,27 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
 
                 {/* TAB 1: PEERS */}
                 <TabsContent value="peers" className="flex-1 flex flex-col min-h-0">
-                    <Card className="flex-1 bg-slate-900/40 border-slate-800 flex flex-col overflow-hidden">
-                        <div className="flex items-center px-4 py-2 bg-slate-950/50 border-b border-slate-800 text-xs font-semibold text-slate-400 uppercase">
+                    <Card className="flex-1 bg-slate-900/40 border-[var(--border-subtle)] flex flex-col overflow-hidden">
+                        <div className="flex items-center px-4 py-2 bg-slate-950/50 border-b border-[var(--border-subtle)] text-xs font-semibold text-[var(--text-muted)] uppercase">
                             <div className="w-8" /><div className="w-[200px]">Fundo</div><div className="w-[150px]">CNPJ</div><div className="w-[140px]">Gestora</div><div className="w-[100px] text-right">PL</div>
-                            <div className="flex-1 grid grid-cols-4 gap-2 px-4 ml-4 border-l border-slate-800/50">
+                            <div className="flex-1 grid grid-cols-4 gap-2 px-4 ml-4 border-l border-[var(--border-subtle)]/50">
                                 <div>Peer Cat.</div><div>Apelido</div><div>Descrição</div><div>Comentário</div>
                             </div>
                         </div>
                         <ScrollArea className="flex-1">
                             {funds.map(fund => (
-                                <div key={fund.id} className="group flex items-center px-4 py-2 hover:bg-slate-800/40 border-b border-slate-800/30 text-sm">
+                                <div key={fund.id} className="group flex items-center px-4 py-2 hover:bg-[var(--bg-elevated)]/40 border-b border-[var(--border-subtle)]/30 text-sm">
                                     <div className="w-8 opacity-0 group-hover:opacity-100 cursor-grab"><GripVertical size={14} className="text-slate-600" /></div>
                                     <div className="w-[200px] font-medium text-white truncate cursor-pointer hover:text-blue-400 hover:underline" onClick={() => openLabWithCnpj(fund.cnpj_fundo)}>{fund.denom_social}</div>
                                     <div className="w-[150px] flex items-center gap-1">
-                                        <span className="text-slate-400 font-mono text-xs select-all">{fund.cnpj_fundo}</span>
+                                        <span className="text-[var(--text-muted)] font-mono text-xs select-all">{fund.cnpj_fundo}</span>
                                         <button onClick={() => copyCnpj(fund.cnpj_fundo)} className="opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-700 rounded"><Copy size={12} className="text-slate-500" /></button>
                                     </div>
-                                    <div className="w-[140px] text-slate-300 truncate">{fund.gestor}</div>
+                                    <div className="w-[140px] text-[var(--text-secondary)] truncate">{fund.gestor}</div>
                                     <div className="w-[100px] text-right text-emerald-400 font-mono">{formatKMB(fund.pl || 0)}</div>
-                                    <div className="flex-1 grid grid-cols-4 gap-2 px-4 ml-4 border-l border-slate-800/50 items-center">
+                                    <div className="flex-1 grid grid-cols-4 gap-2 px-4 ml-4 border-l border-[var(--border-subtle)]/50 items-center">
                                         <PeerSelector value={fund.peer_cat} peers={PEER_CATEGORIES} onSelect={cat => updateFundMutation.mutate({ cnpj: fund.cnpj_fundo, data: { peer_cat: cat } })} />
-                                        <EditableCell value={fund.apelido || ''} onSave={v => updateFundMutation.mutate({ cnpj: fund.cnpj_fundo, data: { nickname: v } })} className="text-slate-300" />
+                                        <EditableCell value={fund.apelido || ''} onSave={v => updateFundMutation.mutate({ cnpj: fund.cnpj_fundo, data: { nickname: v } })} className="text-[var(--text-secondary)]" />
                                         <EditableCell value={fund.descricao || ''} onSave={v => updateFundMutation.mutate({ cnpj: fund.cnpj_fundo, data: { description: v } })} className="text-slate-500 text-xs" />
                                         <EditableCell value={fund.comentario || ''} onSave={v => updateFundMutation.mutate({ cnpj: fund.cnpj_fundo, data: { comment: v } })} className="text-slate-500 text-xs" />
                                     </div>
@@ -608,7 +608,7 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
                                 </div>
                             ))}
                             {funds.length === 0 && !isLoadingDetails && <p className="text-center text-slate-500 py-8">Nenhum fundo neste grupo. Adicione fundos abaixo.</p>}
-                            <div onClick={() => setAddDialogOpen(true)} className="flex items-center justify-center gap-2 p-4 m-2 border-2 border-dashed border-slate-800 hover:border-blue-500/50 rounded-lg cursor-pointer text-slate-500 hover:text-blue-400 transition-all hover:bg-blue-500/5">
+                            <div onClick={() => setAddDialogOpen(true)} className="flex items-center justify-center gap-2 p-4 m-2 border-2 border-dashed border-[var(--border-subtle)] hover:border-blue-500/50 rounded-lg cursor-pointer text-slate-500 hover:text-blue-400 transition-all hover:bg-blue-500/5">
                                 <Plus size={18} /><span>Adicionar Novo Fundo</span>
                             </div>
                         </ScrollArea>
@@ -619,12 +619,12 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
                 {/* TAB 2: FLOW */}
                 <TabsContent value="flow" className="flex-1 min-h-0 space-y-4 overflow-auto">
                     <div className="flex gap-2">
-                        <Button variant={flowViewBy === 'gestor' ? 'default' : 'outline'} size="sm" onClick={() => setFlowViewBy('gestor')} className={flowViewBy === 'gestor' ? 'bg-blue-600' : 'border-slate-700'}>Por Gestora</Button>
-                        <Button variant={flowViewBy === 'fundo' ? 'default' : 'outline'} size="sm" onClick={() => setFlowViewBy('fundo')} className={flowViewBy === 'fundo' ? 'bg-blue-600' : 'border-slate-700'}>Por Fundo</Button>
+                        <Button variant={flowViewBy === 'gestor' ? 'default' : 'outline'} size="sm" onClick={() => setFlowViewBy('gestor')} className={flowViewBy === 'gestor' ? 'bg-blue-600' : 'border-[var(--border-default)]'}>Por Gestora</Button>
+                        <Button variant={flowViewBy === 'fundo' ? 'default' : 'outline'} size="sm" onClick={() => setFlowViewBy('fundo')} className={flowViewBy === 'fundo' ? 'bg-blue-600' : 'border-[var(--border-default)]'}>Por Fundo</Button>
                     </div>
                     <div className="grid grid-cols-2 gap-4 h-[280px]">
-                        <Card className="bg-slate-900/40 border-slate-800">
-                            <CardHeader className="py-3"><CardTitle className="text-sm text-slate-300">Captação por {flowViewBy === 'gestor' ? 'Gestora' : 'Fundo'}</CardTitle></CardHeader>
+                        <Card className="bg-slate-900/40 border-[var(--border-subtle)]">
+                            <CardHeader className="py-3"><CardTitle className="text-sm text-[var(--text-secondary)]">Captação por {flowViewBy === 'gestor' ? 'Gestora' : 'Fundo'}</CardTitle></CardHeader>
                             <CardContent className="h-[220px]">
                                 <ResponsiveContainer>
                                     <Treemap data={captacaoData} dataKey="size" content={<CustomTreemapContent />} isAnimationActive={false}>
@@ -633,8 +633,8 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
                                 </ResponsiveContainer>
                             </CardContent>
                         </Card>
-                        <Card className="bg-slate-900/40 border-slate-800">
-                            <CardHeader className="py-3"><CardTitle className="text-sm text-slate-300">Resgate por {flowViewBy === 'gestor' ? 'Gestora' : 'Fundo'}</CardTitle></CardHeader>
+                        <Card className="bg-slate-900/40 border-[var(--border-subtle)]">
+                            <CardHeader className="py-3"><CardTitle className="text-sm text-[var(--text-secondary)]">Resgate por {flowViewBy === 'gestor' ? 'Gestora' : 'Fundo'}</CardTitle></CardHeader>
                             <CardContent className="h-[220px]">
                                 <ResponsiveContainer>
                                     <Treemap data={resgateData} dataKey="size" content={<CustomTreemapContent />} isAnimationActive={false}>
@@ -648,28 +648,28 @@ const FlagshipPeer = ({ onNavigateToLab }: FlagshipPeerProps) => {
 
                 {/* TAB 3: PERFORMANCE */}
                 <TabsContent value="performance" className="flex-1 flex flex-col min-h-0">
-                    <Card className="flex-1 bg-slate-900/40 border-slate-800 flex flex-col overflow-hidden">
-                        <div className="p-3 border-b border-slate-800 flex justify-between items-center bg-slate-950/30">
-                            <p className="text-xs text-slate-400">Clique no header para ordenar • Arraste para reordenar</p>
+                    <Card className="flex-1 bg-slate-900/40 border-[var(--border-subtle)] flex flex-col overflow-hidden">
+                        <div className="p-3 border-b border-[var(--border-subtle)] flex justify-between items-center bg-slate-950/30">
+                            <p className="text-xs text-[var(--text-muted)]">Clique no header para ordenar • Arraste para reordenar</p>
                             <ColumnSelector columns={ALL_COLUMNS} visibleIds={visibleColIds} onToggle={toggleColumn} />
                         </div>
                         <div className="flex-1 overflow-auto">
                             <div className="min-w-max">
-                                <div className="flex border-b border-slate-800 bg-slate-950/50 sticky top-0 z-10">
-                                    <div className="w-[160px] p-2 text-xs font-semibold text-slate-400 uppercase sticky left-0 bg-slate-950/90 z-20 border-r border-slate-800">Apelido</div>
+                                <div className="flex border-b border-[var(--border-subtle)] bg-slate-950/50 sticky top-0 z-10">
+                                    <div className="w-[160px] p-2 text-xs font-semibold text-[var(--text-muted)] uppercase sticky left-0 bg-slate-950/90 z-20 border-r border-[var(--border-subtle)]">Apelido</div>
                                     {visibleColumns.map(col => (
                                         <div key={col.id} onClick={() => handleSort(col.id)} style={{ width: col.w }}
-                                            className={cn("p-2 text-xs font-semibold text-slate-400 uppercase text-center border-r border-slate-800/30 cursor-pointer select-none hover:bg-slate-800/50 flex items-center justify-center gap-1", sortCol === col.id && "text-blue-400")}>
+                                            className={cn("p-2 text-xs font-semibold text-[var(--text-muted)] uppercase text-center border-r border-[var(--border-subtle)]/30 cursor-pointer select-none hover:bg-[var(--bg-elevated)]/50 flex items-center justify-center gap-1", sortCol === col.id && "text-blue-400")}>
                                             {col.label}
                                             {sortCol === col.id && (sortDir === 'desc' ? <ArrowDown size={12} /> : <ArrowUp size={12} />)}
                                         </div>
                                     ))}
                                 </div>
                                 {perfData.map((row: any) => (
-                                    <div key={row.id} className="flex hover:bg-slate-800/30 border-b border-slate-800/30">
-                                        <div className="w-[160px] p-2 font-medium text-white truncate sticky left-0 bg-[#0F172A] z-10 border-r border-slate-800">{row.nickname || row.denom_social}</div>
+                                    <div key={row.id} className="flex hover:bg-[var(--bg-elevated)]/30 border-b border-[var(--border-subtle)]/30">
+                                        <div className="w-[160px] p-2 font-medium text-white truncate sticky left-0 bg-[var(--bg-primary)] z-10 border-r border-[var(--border-subtle)]">{row.nickname || row.denom_social}</div>
                                         {visibleColumns.map(col => (
-                                            <div key={col.id} style={{ width: col.w }} className="p-2 text-center text-sm border-r border-slate-800/30 flex items-center justify-center">
+                                            <div key={col.id} style={{ width: col.w }} className="p-2 text-center text-sm border-r border-[var(--border-subtle)]/30 flex items-center justify-center">
                                                 {renderPerfCell(col, row)}
                                             </div>
                                         ))}

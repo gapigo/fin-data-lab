@@ -156,7 +156,7 @@ const IngestionPage: React.FC = () => {
                 {/* ── Section 1: Data Freshness Status ──────────────────── */}
 
                 <section>
-                    <h2 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                         <Clock className="w-5 h-5 text-gray-400" />
                         Status dos Dados
                     </h2>
@@ -198,7 +198,7 @@ const IngestionPage: React.FC = () => {
                 {/* ── Section 2: Run Update ─────────────────────────────── */}
 
                 <section>
-                    <h2 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                         <RefreshCw className="w-5 h-5 text-gray-400" />
                         Atualizar Dados
                     </h2>
@@ -252,7 +252,7 @@ const IngestionPage: React.FC = () => {
                                                                 ? 'text-emerald-400'
                                                                 : line.startsWith('STEP')
                                                                     ? 'text-yellow-400 font-bold'
-                                                                    : 'text-gray-300'
+                                                                    : 'text-[var(--text-secondary)]'
                                         }
                                     >
                                         {line}
@@ -267,7 +267,7 @@ const IngestionPage: React.FC = () => {
                 {/* ── Section 3: Ingestion History ──────────────────────── */}
 
                 <section>
-                    <h2 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
                         <History className="w-5 h-5 text-gray-400" />
                         Histórico de Downloads
                     </h2>
@@ -292,7 +292,7 @@ const IngestionPage: React.FC = () => {
                                     {history.map((entry, i) => (
                                         <tr
                                             key={i}
-                                            className="border-b border-gray-800/50 text-gray-300 hover:bg-gray-800/30 transition-colors"
+                                            className="border-b border-gray-800/50 text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors"
                                         >
                                             <td className="px-4 py-3 flex items-center gap-2">
                                                 <Download className="w-3.5 h-3.5 text-blue-400 shrink-0" />

@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.cache import request_dedup
 
 from .middleware.dedup import deduplicate_requests
-from .routers import funds, peer_groups, allocators, cache, ingestion
+from .routers import funds, peer_groups, allocators, cache, ingestion, sql_console, ai, radar, annotations
 # from .routers import allocators_simple  # REMOVED: depends on deleted allocators_simplified
 
 # ── App ──────────────────────────────────────────────────────────────────
@@ -55,6 +55,10 @@ app.include_router(peer_groups.router)
 app.include_router(allocators.router)
 app.include_router(cache.router)
 app.include_router(ingestion.router)
+app.include_router(sql_console.router, prefix="/sql", tags=["sql"])
+app.include_router(ai.router, prefix="/ai", tags=["ai"])
+app.include_router(radar.router, prefix="/radar", tags=["radar"])
+app.include_router(annotations.router, prefix="/annotations", tags=["annotations"])
 # app.include_router(allocators_simple.router)  # REMOVED: depends on deleted allocators_simplified
 
 # ── Health ───────────────────────────────────────────────────────────────

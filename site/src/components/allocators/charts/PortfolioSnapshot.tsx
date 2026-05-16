@@ -26,7 +26,7 @@ export const PortfolioSnapshot: React.FC<Props> = ({ data }) => {
                                     {item.symbol}
                                 </div>
                                 <div>
-                                    <div className="text-sm font-medium text-gray-200 group-hover:text-blue-400 transition-colors line-clamp-1" title={item.name}>
+                                    <div className="text-sm font-medium text-[var(--text-primary)] group-hover:text-blue-400 transition-colors line-clamp-1" title={item.name}>
                                         {item.name}
                                     </div>
                                     <div className="text-xs text-gray-500">{item.peer} • {item.gestor}</div>
@@ -43,7 +43,7 @@ export const PortfolioSnapshot: React.FC<Props> = ({ data }) => {
                         </div>
 
                         {/* Progress Bar */}
-                        <div className="w-full h-1.5 bg-gray-800 rounded-full overflow-hidden mt-1">
+                        <div className="w-full h-1.5 bg-[var(--bg-elevated)] rounded-full overflow-hidden mt-1">
                             <div
                                 className="h-full bg-gradient-to-r from-blue-600 to-emerald-400 rounded-full"
                                 style={{ width: `${Math.min(item.percentage, 100)}%` }}

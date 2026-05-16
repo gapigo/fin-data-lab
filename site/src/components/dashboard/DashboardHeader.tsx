@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Menu, Bell, Settings, Sun, Moon, Search, Command } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, Bell, Settings, Sun, Moon, Search, Command, Bot } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
 
@@ -8,12 +9,103 @@ interface DashboardHeaderProps {
   sidebarCollapsed: boolean;
 }
 
+interface SearchResult {
+  cnpj_fundo: string;
+  denom_social: string;
+  gestor?: string;
+  classe?: string;
+}
+
 export const DashboardHeader = ({
   onToggleSidebar,
   sidebarCollapsed,
 }: DashboardHeaderProps) => {
   const { theme, toggleTheme } = useTheme();
+  const navigate = useNavigate();
   const [searchFocused, setSearchFocused] = useState(false);
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const fetchResults = useCallback(async (q: string) => {
+    if (!q || q.length < 2) {
+      setResults([]);
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/funds/search?q=${encodeURIComponent(q)}&limit=8`);
+      if (res.ok) {
+        const data = await res.json();
+        setResults(data || []);
+      } else {
+        setResults([]);
+      }
+    } catch {
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchResults(query);
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query, fetchResults]);
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [results]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+        setSearchFocused(true);
+      }
+      if (!searchFocused) return;
+      if (e.key === 'Escape') {
+        setSearchFocused(false);
+        inputRef.current?.blur();
+      }
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex(i => Math.min(i + 1, results.length - 1));
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex(i => Math.max(i - 1, 0));
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const selected = results[selectedIndex];
+        if (selected) {
+          setSearchFocused(false);
+          setQuery('');
+          setResults([]);
+          navigate(`/cvm/lab/${selected.cnpj_fundo}`);
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [searchFocused, results, selectedIndex, navigate]);
+
+  const handleSelect = (result: SearchResult) => {
+    setSearchFocused(false);
+    setQuery('');
+    setResults([]);
+    navigate(`/cvm/lab/${result.cnpj_fundo}`);
+  };
 
   return (
     <>
@@ -52,11 +144,17 @@ export const DashboardHeader = ({
           >
             <Search size={16} className="text-[var(--text-muted)] shrink-0" />
             <input
+              ref={inputRef}
               type="text"
               placeholder="Buscar fundos, ações, crypto..."
               className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] outline-none"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
+              onBlur={() => {
+                // Delay to allow click on result
+                setTimeout(() => setSearchFocused(false), 150);
+              }}
             />
             <span className="hidden sm:flex items-center gap-0.5 text-[var(--text-muted)] text-xs shrink-0">
               <Command size={12} />
@@ -64,20 +162,38 @@ export const DashboardHeader = ({
             </span>
           </div>
 
-          {/* Command palette overlay placeholder */}
+          {/* Command palette overlay */}
           {searchFocused && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg shadow-lg p-4 z-50">
-              <p className="text-xs text-[var(--text-muted)] mb-2">Busque por nome, CNPJ ou ticker</p>
-              <div className="space-y-1">
-                <div className="px-3 py-2 rounded text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] cursor-pointer">
-                  Kinea Atlas II
-                </div>
-                <div className="px-3 py-2 rounded text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] cursor-pointer">
-                  PETR4
-                </div>
-                <div className="px-3 py-2 rounded text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] cursor-pointer">
-                  BTC-USD
-                </div>
+            <div className="absolute top-full left-0 right-0 mt-2 bg-[var(--bg-elevated)] border border-[var(--border-default)] rounded-lg shadow-lg p-2 z-50">
+              {loading && (
+                <p className="text-xs text-[var(--text-muted)] px-3 py-2">Buscando...</p>
+              )}
+              {!loading && results.length === 0 && query.length >= 2 && (
+                <p className="text-xs text-[var(--text-muted)] px-3 py-2">Nenhum resultado encontrado</p>
+              )}
+              {!loading && results.length === 0 && query.length < 2 && (
+                <p className="text-xs text-[var(--text-muted)] px-3 py-2 mb-1">Busque por nome, CNPJ ou ticker</p>
+              )}
+              <div className="space-y-0.5">
+                {results.map((r, i) => (
+                  <button
+                    key={r.cnpj_fundo}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      handleSelect(r);
+                    }}
+                    className={cn(
+                      'w-full text-left px-3 py-2 rounded text-sm flex items-center gap-2 transition-colors',
+                      i === selectedIndex
+                        ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)]'
+                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'
+                    )}
+                  >
+                    <span className="text-[var(--text-muted)] text-xs font-medium shrink-0">[CVM]</span>
+                    <span className="truncate">{r.denom_social}</span>
+                    <span className="text-[var(--text-muted)] text-xs ml-auto shrink-0">{r.cnpj_fundo}</span>
+                  </button>
+                ))}
               </div>
             </div>
           )}
@@ -100,6 +216,13 @@ export const DashboardHeader = ({
             <Settings size={18} />
           </button>
 
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('fdl-ai-open'))}
+            className="flex items-center justify-center w-9 h-9 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors"
+            title="AI Analyst"
+          >
+            <Bot size={18} />
+          </button>
           <button
             onClick={toggleTheme}
             className="flex items-center justify-center w-9 h-9 rounded-md text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] transition-colors"

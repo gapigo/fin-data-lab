@@ -153,17 +153,17 @@ const FlowTab: React.FC<FlowTabProps> = ({ client, peers }) => {
     return (
         <div className="space-y-8">
             {/* Gráfico de Barras - Fluxo por Segmento */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle className="text-lg text-slate-200">
+                        <CardTitle className="text-lg text-[var(--text-primary)]">
                             Fluxo por Cliente Segmentado
                         </CardTitle>
                         <CardDescription>
                             Verde = fluxo positivo, Vermelho = fluxo negativo
                         </CardDescription>
                     </div>
-                    <div className="flex gap-1 bg-slate-950 p-1 rounded-md border border-slate-800">
+                    <div className="flex gap-1 bg-slate-950 p-1 rounded-md border border-[var(--border-subtle)]">
                         {['6M', '12M', '24M', '36M', '48M', '60M'].map(w => (
                             <button
                                 key={w}
@@ -171,8 +171,8 @@ const FlowTab: React.FC<FlowTabProps> = ({ client, peers }) => {
                                 className={cn(
                                     "px-3 py-1 text-xs rounded transition-all",
                                     selectedWindow === w
-                                        ? "bg-slate-800 text-emerald-400 font-medium"
-                                        : "text-slate-500 hover:text-slate-300"
+                                        ? "bg-[var(--bg-elevated)] text-emerald-400 font-medium"
+                                        : "text-slate-500 hover:text-[var(--text-secondary)]"
                                 )}
                             >
                                 {w}
@@ -215,9 +215,9 @@ const FlowTab: React.FC<FlowTabProps> = ({ client, peers }) => {
             </Card>
 
             {/* Gráfico de Linha - Posição Histórica (5 anos) */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200">
+                    <CardTitle className="text-lg text-[var(--text-primary)]">
                         Posição Histórica (5 anos)
                     </CardTitle>
                     <CardDescription>
@@ -320,10 +320,10 @@ const MetricsStackedCharts: React.FC<MetricsStackedChartsProps> = ({
     };
 
     return (
-        <Card className="bg-slate-900/50 border-slate-800">
+        <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <div>
-                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                    <CardTitle className="text-lg text-[var(--text-primary)] flex items-center gap-2">
                         <Activity className="w-5 h-5 text-emerald-400" />
                         Métricas por Janela
                     </CardTitle>
@@ -334,10 +334,10 @@ const MetricsStackedCharts: React.FC<MetricsStackedChartsProps> = ({
                 <div className="flex gap-3 items-center">
                     {/* Selector de métrica */}
                     <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-                        <SelectTrigger className="w-[150px] bg-slate-950 border-slate-700 h-9">
+                        <SelectTrigger className="w-[150px] bg-slate-950 border-[var(--border-default)] h-9">
                             <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             {Object.entries(METRIC_LABELS).map(([key, label]) => (
                                 <SelectItem key={key} value={key}>{label}</SelectItem>
                             ))}
@@ -349,7 +349,7 @@ const MetricsStackedCharts: React.FC<MetricsStackedChartsProps> = ({
                         <Button
                             variant="outline"
                             size="sm"
-                            className="bg-slate-950 border-slate-700 h-9 px-3"
+                            className="bg-slate-950 border-[var(--border-default)] h-9 px-3"
                             onClick={() => setDropdownOpen(!dropdownOpen)}
                         >
                             <BarChart3 className="w-4 h-4 mr-2" />
@@ -361,7 +361,7 @@ const MetricsStackedCharts: React.FC<MetricsStackedChartsProps> = ({
                         </Button>
 
                         {dropdownOpen && (
-                            <div className="absolute right-0 top-full mt-1 z-50 bg-slate-900 border border-slate-700 rounded-lg p-2 shadow-xl min-w-[160px]">
+                            <div className="absolute right-0 top-full mt-1 z-50 bg-slate-900 border border-[var(--border-default)] rounded-lg p-2 shadow-xl min-w-[160px]">
                                 {ALL_WINDOWS.map(w => (
                                     <button
                                         key={w}
@@ -370,7 +370,7 @@ const MetricsStackedCharts: React.FC<MetricsStackedChartsProps> = ({
                                             "w-full flex items-center gap-2 px-3 py-2 rounded text-sm transition-colors",
                                             visibleWindows.has(w)
                                                 ? "bg-purple-500/20 text-purple-300"
-                                                : "hover:bg-slate-800 text-slate-400"
+                                                : "hover:bg-[var(--bg-elevated)] text-[var(--text-muted)]"
                                         )}
                                     >
                                         <div className={cn(
@@ -408,19 +408,19 @@ const MetricsStackedCharts: React.FC<MetricsStackedChartsProps> = ({
                         <div
                             key={window}
                             className={cn(
-                                "bg-slate-950/50 rounded-lg border border-slate-800 overflow-hidden",
+                                "bg-slate-950/50 rounded-lg border border-[var(--border-subtle)] overflow-hidden",
                                 idx > 0 && "mt-3"
                             )}
                         >
                             {/* Header do gráfico com botão de esconder */}
-                            <div className="flex items-center justify-between px-4 py-2 bg-slate-900/50 border-b border-slate-800">
+                            <div className="flex items-center justify-between px-4 py-2 bg-slate-900/50 border-b border-[var(--border-subtle)]">
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm font-bold text-purple-400">{window}</span>
                                     <span className="text-xs text-slate-500">({windowData.length} fundos)</span>
                                 </div>
                                 <button
                                     onClick={() => hideWindow(window)}
-                                    className="p-1 hover:bg-slate-800 rounded transition-colors group"
+                                    className="p-1 hover:bg-[var(--bg-elevated)] rounded transition-colors group"
                                     title="Esconder este gráfico"
                                 >
                                     <svg
@@ -549,9 +549,9 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers,
     return (
         <div className="space-y-8">
             {/* Gráfico 1: Posição por Fundo */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                    <CardTitle className="text-lg text-[var(--text-primary)] flex items-center gap-2">
                         <BarChart3 className="w-5 h-5 text-blue-400" />
                         Posição por Fundo
                     </CardTitle>
@@ -616,10 +616,10 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers,
             />
 
             {/* Gráfico 3: Boxplots */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                        <CardTitle className="text-lg text-slate-200">
+                        <CardTitle className="text-lg text-[var(--text-primary)]">
                             Distribuição de Métricas (Boxplots)
                         </CardTitle>
                         <CardDescription>
@@ -630,10 +630,10 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers,
                         value={highlightedFund || ''}
                         onValueChange={setHighlightedFund}
                     >
-                        <SelectTrigger className="w-[300px] bg-slate-950 border-slate-700">
+                        <SelectTrigger className="w-[300px] bg-slate-950 border-[var(--border-default)]">
                             <SelectValue placeholder="Selecione um fundo" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700 max-h-[300px]">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)] max-h-[300px]">
                             {allFunds.map((fund: any) => (
                                 <SelectItem key={fund.cnpj} value={fund.cnpj}>
                                     {fund.is_highlighted && <span className="text-emerald-400">★ </span>}
@@ -651,8 +651,8 @@ const PerformanceTab: React.FC<PerformanceTabProps> = ({ client, segment, peers,
                             const metricColor = { ret: '#10b981', vol: '#3b82f6', mdd: '#ef4444' }[metric];
 
                             return (
-                                <div key={metric} className="bg-slate-950 rounded-lg p-4 border border-slate-800">
-                                    <h4 className="text-sm font-medium text-slate-300 mb-3 text-center">{metricLabel}</h4>
+                                <div key={metric} className="bg-slate-950 rounded-lg p-4 border border-[var(--border-subtle)]">
+                                    <h4 className="text-sm font-medium text-[var(--text-secondary)] mb-3 text-center">{metricLabel}</h4>
                                     <BoxPlotChart
                                         data={metricData}
                                         color={metricColor!}
@@ -701,18 +701,18 @@ const BoxPlotChart: React.FC<BoxPlotChartProps> = ({ data, color, highlightValue
                             if (!active || !payload?.[0]) return null;
                             const d = payload[0].payload;
                             return (
-                                <div className="bg-slate-900 border border-slate-700 p-2 rounded text-xs">
+                                <div className="bg-slate-900 border border-[var(--border-default)] p-2 rounded text-xs">
                                     <p className="font-bold mb-1">{d.window}</p>
                                     <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-                                        <span className="text-slate-400">Max:</span><span>{d.max?.toFixed(2)}%</span>
-                                        <span className="text-slate-400">Q3:</span><span>{d.q3?.toFixed(2)}%</span>
-                                        <span className="text-slate-400 font-bold">Med:</span><span className="font-bold">{d.median?.toFixed(2)}%</span>
-                                        <span className="text-slate-400">Q1:</span><span>{d.q1?.toFixed(2)}%</span>
-                                        <span className="text-slate-400">Min:</span><span>{d.min?.toFixed(2)}%</span>
+                                        <span className="text-[var(--text-muted)]">Max:</span><span>{d.max?.toFixed(2)}%</span>
+                                        <span className="text-[var(--text-muted)]">Q3:</span><span>{d.q3?.toFixed(2)}%</span>
+                                        <span className="text-[var(--text-muted)] font-bold">Med:</span><span className="font-bold">{d.median?.toFixed(2)}%</span>
+                                        <span className="text-[var(--text-muted)]">Q1:</span><span>{d.q1?.toFixed(2)}%</span>
+                                        <span className="text-[var(--text-muted)]">Min:</span><span>{d.min?.toFixed(2)}%</span>
                                         {d.highlight !== null && d.highlight !== undefined && (
                                             <>
-                                                <span className="text-blue-400 font-bold border-t border-slate-700 pt-1 mt-1">★ Destaque:</span>
-                                                <span className="text-blue-400 font-bold border-t border-slate-700 pt-1 mt-1">{d.highlight?.toFixed(2)}%</span>
+                                                <span className="text-blue-400 font-bold border-t border-[var(--border-default)] pt-1 mt-1">★ Destaque:</span>
+                                                <span className="text-blue-400 font-bold border-t border-[var(--border-default)] pt-1 mt-1">{d.highlight?.toFixed(2)}%</span>
                                             </>
                                         )}
                                     </div>
@@ -829,9 +829,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
         <div className="space-y-8">
             {/* Gráfico de Colunas Azul Decrescente - Cotas de Fundos */}
             {viewMode === 'segment' && cotasList.length > 0 && (
-                <Card className="bg-slate-900/50 border-slate-800">
+                <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                     <CardHeader>
-                        <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                        <CardTitle className="text-lg text-[var(--text-primary)] flex items-center gap-2">
                             <BarChart3 className="w-5 h-5 text-blue-400" />
                             Posição em Cotas de Fundos
                         </CardTitle>
@@ -877,7 +877,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
             )}
 
             {/* Seletor de modo */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardContent className="py-4">
                     <div className="flex gap-4 items-center">
                         <div className="flex gap-2">
@@ -901,7 +901,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
                                 placeholder="Digite CNPJ ou nome do fundo"
                                 value={searchCnpj}
                                 onChange={(e) => setSearchCnpj(e.target.value)}
-                                className="w-[300px] bg-slate-950 border-slate-700"
+                                className="w-[300px] bg-slate-950 border-[var(--border-default)]"
                             />
                         )}
                     </div>
@@ -909,9 +909,9 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
             </Card>
 
             {/* Donut Chart */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                    <CardTitle className="text-lg text-[var(--text-primary)] flex items-center gap-2">
                         <PieChartIcon className="w-5 h-5 text-purple-400" />
                         Composição da Carteira
                     </CardTitle>
@@ -946,7 +946,7 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
                             <Legend
                                 verticalAlign="bottom"
                                 height={36}
-                                formatter={(value) => <span className="text-slate-300 text-sm">{value}</span>}
+                                formatter={(value) => <span className="text-[var(--text-secondary)] text-sm">{value}</span>}
                             />
                         </PieChart>
                     </ResponsiveContainer>
@@ -954,29 +954,29 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
             </Card>
 
             {/* Tabela Expandível */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200">
+                    <CardTitle className="text-lg text-[var(--text-primary)]">
                         Detalhamento por Tipo de Aplicação
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
-                            <TableRow className="border-slate-800 hover:bg-transparent">
-                                <TableHead className="text-slate-400 w-10"></TableHead>
-                                <TableHead className="text-slate-400">Classe / Ativo</TableHead>
-                                <TableHead className="text-slate-400">Código</TableHead>
-                                <TableHead className="text-slate-400">Tipo Código</TableHead>
-                                <TableHead className="text-right text-slate-400">Valor</TableHead>
-                                <TableHead className="text-right text-slate-400">%</TableHead>
+                            <TableRow className="border-[var(--border-subtle)] hover:bg-transparent">
+                                <TableHead className="text-[var(--text-muted)] w-10"></TableHead>
+                                <TableHead className="text-[var(--text-muted)]">Classe / Ativo</TableHead>
+                                <TableHead className="text-[var(--text-muted)]">Código</TableHead>
+                                <TableHead className="text-[var(--text-muted)]">Tipo Código</TableHead>
+                                <TableHead className="text-right text-[var(--text-muted)]">Valor</TableHead>
+                                <TableHead className="text-right text-[var(--text-muted)]">%</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {tableData.map((group: any) => (
                                 <React.Fragment key={group.tp_aplic}>
                                     <TableRow
-                                        className="border-slate-800 hover:bg-slate-800/30 cursor-pointer"
+                                        className="border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)]/30 cursor-pointer"
                                         onClick={() => toggleGroup(group.tp_aplic)}
                                     >
                                         <TableCell className="p-2">
@@ -985,13 +985,13 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
                                                 : <ChevronRight className="w-4 h-4 text-slate-500" />
                                             }
                                         </TableCell>
-                                        <TableCell className="font-medium text-slate-200">
+                                        <TableCell className="font-medium text-[var(--text-primary)]">
                                             {group.tp_aplic}
                                             <span className="text-slate-500 text-xs ml-2">({group.count} ativos)</span>
                                         </TableCell>
                                         <TableCell></TableCell>
                                         <TableCell></TableCell>
-                                        <TableCell className="text-right font-mono text-slate-300">
+                                        <TableCell className="text-right font-mono text-[var(--text-secondary)]">
                                             {formatCurrency(group.total_value)}
                                         </TableCell>
                                         <TableCell className="text-right">
@@ -1000,15 +1000,15 @@ const PortfolioTab: React.FC<PortfolioTabProps> = ({ client, segment, initialCnp
                                     </TableRow>
 
                                     {expandedGroups.has(group.tp_aplic) && group.items?.map((item: any, idx: number) => (
-                                        <TableRow key={idx} className="border-slate-800 hover:bg-slate-800/20 bg-slate-950/30">
+                                        <TableRow key={idx} className="border-[var(--border-subtle)] hover:bg-[var(--bg-elevated)]/20 bg-slate-950/30">
                                             <TableCell></TableCell>
-                                            <TableCell className="text-slate-400 pl-8 text-sm">{item.nm_ativo}</TableCell>
+                                            <TableCell className="text-[var(--text-muted)] pl-8 text-sm">{item.nm_ativo}</TableCell>
                                             <TableCell className="text-slate-500 text-xs">{item.cd_ativo}</TableCell>
                                             <TableCell className="text-slate-500 text-xs">{item.tp_cd_ativo}</TableCell>
-                                            <TableCell className="text-right font-mono text-slate-400 text-sm">
+                                            <TableCell className="text-right font-mono text-[var(--text-muted)] text-sm">
                                                 {formatCurrency(item.vl_merc_pos_final)}
                                             </TableCell>
-                                            <TableCell className="text-right text-slate-400 text-sm">
+                                            <TableCell className="text-right text-[var(--text-muted)] text-sm">
                                                 {item.percentage?.toFixed(2)}%
                                             </TableCell>
                                         </TableRow>
@@ -1106,8 +1106,8 @@ const MovimentacaoTab: React.FC<MovimentacaoTabProps> = ({ client, segment }) =>
         <div className="space-y-8">
             {/* Seletor de período */}
             <div className="flex items-center gap-4">
-                <span className="text-sm text-slate-400">Período:</span>
-                <div className="flex gap-1 bg-slate-950 p-1 rounded-md border border-slate-800">
+                <span className="text-sm text-[var(--text-muted)]">Período:</span>
+                <div className="flex gap-1 bg-slate-950 p-1 rounded-md border border-[var(--border-subtle)]">
                     {periodos.map((p: string) => (
                         <button
                             key={p}
@@ -1116,7 +1116,7 @@ const MovimentacaoTab: React.FC<MovimentacaoTabProps> = ({ client, segment }) =>
                                 "px-3 py-1.5 text-xs rounded transition-all font-medium",
                                 selectedPeriodo === p
                                     ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
-                                    : "text-slate-500 hover:text-slate-300"
+                                    : "text-slate-500 hover:text-[var(--text-secondary)]"
                             )}
                         >
                             {p}
@@ -1126,9 +1126,9 @@ const MovimentacaoTab: React.FC<MovimentacaoTabProps> = ({ client, segment }) =>
             </div>
 
             {/* Gráfico de Barras Empilhadas - Movimentação mensal por gestor */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                    <CardTitle className="text-lg text-[var(--text-primary)] flex items-center gap-2">
                         <BarChart3 className="w-5 h-5 text-blue-400" />
                         Movimentação Mensal por Gestor
                     </CardTitle>
@@ -1176,9 +1176,9 @@ const MovimentacaoTab: React.FC<MovimentacaoTabProps> = ({ client, segment }) =>
             </Card>
 
             {/* Scatter Plot - CL vs Crescimento */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardHeader>
-                    <CardTitle className="text-lg text-slate-200 flex items-center gap-2">
+                    <CardTitle className="text-lg text-[var(--text-primary)] flex items-center gap-2">
                         <Activity className="w-5 h-5 text-emerald-400" />
                         Distribuição de Movimentação por Gestor
                     </CardTitle>
@@ -1247,7 +1247,7 @@ const MovimentacaoTab: React.FC<MovimentacaoTabProps> = ({ client, segment }) =>
             </Card>
 
             {/* Legenda dos gestores */}
-            <Card className="bg-slate-900/50 border-slate-800">
+            <Card className="bg-slate-900/50 border-[var(--border-subtle)]">
                 <CardContent className="py-4">
                     <div className="flex flex-wrap gap-3">
                         {gestores.slice(0, 15).map((gestor: string, i: number) => (
@@ -1256,7 +1256,7 @@ const MovimentacaoTab: React.FC<MovimentacaoTabProps> = ({ client, segment }) =>
                                     className="w-3 h-3 rounded-full"
                                     style={{ backgroundColor: SCATTER_COLORS[i % SCATTER_COLORS.length] }}
                                 />
-                                <span className="text-xs text-slate-400">{gestor}</span>
+                                <span className="text-xs text-[var(--text-muted)]">{gestor}</span>
                             </div>
                         ))}
                     </div>
@@ -1313,14 +1313,14 @@ const AllocatorsSimplified: React.FC = () => {
 
     if (loadingFilters) {
         return (
-            <div className="flex h-screen items-center justify-center bg-[#0F172A]">
+            <div className="flex h-screen items-center justify-center bg-[var(--bg-primary)]">
                 <Loader2 className="animate-spin text-emerald-500 w-10 h-10" />
             </div>
         );
     }
 
     return (
-        <div className="flex flex-col h-full bg-[#0F172A] text-slate-100 p-6 overflow-hidden">
+        <div className="flex flex-col h-full bg-[var(--bg-primary)] text-slate-100 p-6 overflow-hidden">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0">
                 <div>
@@ -1333,13 +1333,13 @@ const AllocatorsSimplified: React.FC = () => {
                     </p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-slate-900/80 p-2 rounded-lg border border-slate-800 shadow-xl">
+                <div className="flex items-center gap-3 bg-slate-900/80 p-2 rounded-lg border border-[var(--border-subtle)] shadow-xl">
                     {/* Cliente */}
                     <Select value={selectedClient} onValueChange={setSelectedClient}>
-                        <SelectTrigger className="w-[160px] bg-slate-950 border-slate-700 h-9 font-medium text-purple-400">
+                        <SelectTrigger className="w-[160px] bg-slate-950 border-[var(--border-default)] h-9 font-medium text-purple-400">
                             <SelectValue placeholder="Cliente" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             {filtersData?.clients?.map((c: string) => (
                                 <SelectItem key={c} value={c}>{c}</SelectItem>
                             ))}
@@ -1348,10 +1348,10 @@ const AllocatorsSimplified: React.FC = () => {
 
                     {/* Segmento */}
                     <Select value={selectedSegment} onValueChange={setSelectedSegment}>
-                        <SelectTrigger className="w-[180px] bg-slate-950 border-slate-700 h-9">
+                        <SelectTrigger className="w-[180px] bg-slate-950 border-[var(--border-default)] h-9">
                             <SelectValue placeholder="Segmento" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             {availableSegments.map((s: string) => (
                                 <SelectItem key={s} value={s}>{s}</SelectItem>
                             ))}
@@ -1363,10 +1363,10 @@ const AllocatorsSimplified: React.FC = () => {
                         value={selectedPeers.join(',') || 'all'}
                         onValueChange={(v) => setSelectedPeers(v === 'all' ? [] : [v])}
                     >
-                        <SelectTrigger className="w-[150px] bg-slate-950 border-slate-700 h-9">
+                        <SelectTrigger className="w-[150px] bg-slate-950 border-[var(--border-default)] h-9">
                             <SelectValue placeholder="Peers" />
                         </SelectTrigger>
-                        <SelectContent className="bg-slate-900 border-slate-700">
+                        <SelectContent className="bg-slate-900 border-[var(--border-default)]">
                             <SelectItem value="all">Todos Peers</SelectItem>
                             {filtersData?.peers?.map((p: string) => (
                                 <SelectItem key={p} value={p}>{p}</SelectItem>
@@ -1378,7 +1378,7 @@ const AllocatorsSimplified: React.FC = () => {
 
             {/* Tabs principais: Fluxo do Cliente | Carteira */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0 space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div className="flex items-center justify-between border-b border-[var(--border-subtle)] pb-2">
                     <TabsList className="bg-transparent p-0 w-fit">
                         <TabsTrigger
                             value="fluxo"
@@ -1407,7 +1407,7 @@ const AllocatorsSimplified: React.FC = () => {
                     <TabsContent value="carteira" className="mt-0 pb-10">
                         <div className="space-y-6">
                             {/* Sub-tab selector */}
-                            <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 w-fit">
+                            <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-[var(--border-subtle)] w-fit">
                                 {[
                                     { id: 'performance', label: 'Performance', icon: Activity },
                                     { id: 'completa', label: 'Completa', icon: PieChartIcon },
@@ -1419,8 +1419,8 @@ const AllocatorsSimplified: React.FC = () => {
                                         className={cn(
                                             "flex items-center gap-2 px-4 py-2 text-sm rounded-md transition-all",
                                             carteiraSubTab === id
-                                                ? "bg-slate-800 text-white shadow-md font-medium"
-                                                : "text-slate-500 hover:text-slate-300 hover:bg-slate-900"
+                                                ? "bg-[var(--bg-elevated)] text-white shadow-md font-medium"
+                                                : "text-slate-500 hover:text-[var(--text-secondary)] hover:bg-slate-900"
                                         )}
                                     >
                                         <Icon className="w-4 h-4" />

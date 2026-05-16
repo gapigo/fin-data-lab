@@ -24,7 +24,7 @@ const CustomTooltip = ({ active, payload }: any) => {
         return (
             <div className="bg-[#1e1e2d] border border-gray-700 p-3 rounded-lg shadow-xl text-xs">
                 <p className="text-white font-bold mb-1">{data.name}</p>
-                <div className="text-gray-300">
+                <div className="text-[var(--text-secondary)]">
                     Part: <span className="text-emerald-400 font-bold">{data.value.toFixed(2)}%</span>
                 </div>
                 <div className="text-gray-400">

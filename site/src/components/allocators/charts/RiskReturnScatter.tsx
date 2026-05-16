@@ -22,7 +22,7 @@ const CustomTooltip = ({ active, payload }: any) => {
                 <div className="flex flex-col gap-1">
                     <div><span className="text-gray-400">Retorno:</span> <span className="text-emerald-400">{data.y?.toFixed(2)}%</span></div>
                     <div><span className="text-gray-400">Volatilidade:</span> <span className="text-blue-400">{data.x?.toFixed(2)}%</span></div>
-                    <div><span className="text-gray-400">PL:</span> <span className="text-gray-200">R$ {data.z?.toFixed(1)}M</span></div>
+                    <div><span className="text-gray-400">PL:</span> <span className="text-[var(--text-primary)]">R$ {data.z?.toFixed(1)}M</span></div>
                 </div>
             </div>
         );

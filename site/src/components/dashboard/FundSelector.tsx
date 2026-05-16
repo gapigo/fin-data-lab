@@ -65,7 +65,7 @@ export function FundSelector({ onSelect, selectedCnpj }: FundSelectorProps) {
                         variant="outline"
                         role="combobox"
                         aria-expanded={open}
-                        className="w-full justify-between bg-white/5 border-slate-700 text-slate-200 hover:bg-white/10 hover:text-white h-12"
+                        className="w-full justify-between bg-white/5 border-[var(--border-default)] text-[var(--text-primary)] hover:bg-white/10 hover:text-white h-12"
                     >
                         {selectedCnpj
                             ? `Fundo selecionado: ${formatCnpj(selectedCnpj)}` // Ideally show name, but we might only have CNPJ in state
@@ -73,7 +73,7 @@ export function FundSelector({ onSelect, selectedCnpj }: FundSelectorProps) {
                         <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-slate-900 border-slate-800 text-slate-100">
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 bg-slate-900 border-[var(--border-subtle)] text-slate-100">
                     <Command className="bg-slate-900 text-slate-100">
                         <CommandInput
                             placeholder="Busque por nome ou CNPJ..."
@@ -96,7 +96,7 @@ export function FundSelector({ onSelect, selectedCnpj }: FundSelectorProps) {
                                         key={fund.cnpj_fundo}
                                         value={fund.denom_social}
                                         onSelect={() => handleSelect(fund.cnpj_fundo)}
-                                        className="flex flex-col items-start gap-1 py-3 aria-selected:bg-slate-800 aria-selected:text-white cursor-pointer"
+                                        className="flex flex-col items-start gap-1 py-3 aria-selected:bg-[var(--bg-elevated)] aria-selected:text-white cursor-pointer"
                                     >
                                         <span className="font-medium truncate w-full">{fund.denom_social}</span>
                                         <span className="text-xs text-slate-500 w-full flex justify-between">
