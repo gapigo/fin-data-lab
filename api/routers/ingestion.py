@@ -31,9 +31,11 @@ _db = PostgresConnector()
 class IngestionStatus(BaseModel):
     cotas_last_date: str | None = None
     carteira_last_date: str | None = None
+    cadastro_last_date: str | None = None
     days_outdated: int | None = None
     raw_last_date: str | None = None
-
+    fund_count: int | None = None
+    total_pl: float | None = None
 
 # ── GET /ingestion/status ──────────────────────────────────────────────────
 
@@ -58,11 +60,27 @@ def get_status():
     if cotas_date:
         days_out = (today - cotas_date).days
 
+    # Stats
+    df_fund_count = _db.read_sql("SELECT COUNT(*) AS cnt FROM cvm.cadastro WHERE sit = 'EM FUNCIONAMENTO NORMAL'")
+    df_pl = _db.read_sql("""
+        SELECT SUM(vl_patrim_liq) AS total_pl
+        FROM cvm.cotas c
+        INNER JOIN (
+            SELECT cnpj_fundo, MAX(dt_comptc) AS max_date
+            FROM cvm.cotas
+            GROUP BY cnpj_fundo
+        ) latest ON c.cnpj_fundo = latest.cnpj_fundo AND c.dt_comptc = latest.max_date
+    """)
+    fund_count = int(df_fund_count['cnt'].iloc[0]) if not df_fund_count.empty else None
+    total_pl = float(df_pl['total_pl'].iloc[0]) if not df_pl.empty and df_pl['total_pl'].iloc[0] is not None else None
+
     return IngestionStatus(
         cotas_last_date=cotas_date.isoformat() if cotas_date else None,
         carteira_last_date=carteira_date.isoformat() if carteira_date else None,
         days_outdated=days_out,
         raw_last_date=raw_date.isoformat() if raw_date else None,
+        fund_count=fund_count,
+        total_pl=total_pl,
     )
 
 

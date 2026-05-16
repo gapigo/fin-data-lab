@@ -1,171 +1,202 @@
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { ViewModeSelector } from './ViewModeSelector';
 import {
-  getMenuGroupsByViewMode,
-  getDefaultViewMode,
-  saveViewMode,
-  ViewMode,
-  NavGroup,
-} from '@/config/menuConfig';
-import { useState, useEffect } from 'react';
+  BarChart3,
+  TrendingUp,
+  Bitcoin,
+  Database,
+  Terminal,
+  BookOpen,
+  Bot,
+  Download,
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  Sun,
+  Moon,
+} from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
+import { StatusIndicator } from '@/components/ui/StatusIndicator';
 
-// ============================================================================
-// INTERFACES (mantidas para compatibilidade)
-// ============================================================================
+interface NavItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  pillar?: 'cvm' | 'acoes' | 'crypto';
+}
+
+interface NavSection {
+  title: string;
+  items: NavItem[];
+}
 
 interface DashboardSidebarProps {
   collapsed: boolean;
   activeView: string;
   onViewChange: (view: string) => void;
   showAnalytics?: boolean;
-  viewMode?: ViewMode;
-  onViewModeChange?: (viewMode: ViewMode) => void;
+  viewMode?: string;
+  onViewModeChange?: (mode: string) => void;
 }
 
-// ============================================================================
-// COMPONENTE PRINCIPAL
-// ============================================================================
+const SECTIONS: NavSection[] = [
+  {
+    title: 'DADOS',
+    items: [
+      { id: 'fund-lab', label: 'CVM / Fundos', icon: <BarChart3 size={18} />, pillar: 'cvm' },
+      { id: 'acoes', label: 'Ações B3', icon: <TrendingUp size={18} />, pillar: 'acoes' },
+      { id: 'crypto', label: 'Crypto', icon: <Bitcoin size={18} />, pillar: 'crypto' },
+    ],
+  },
+  {
+    title: 'WORKSPACE',
+    items: [
+      { id: 'sql-console', label: 'SQL Console', icon: <Terminal size={18} /> },
+      { id: 'notebooks', label: 'Notebooks', icon: <BookOpen size={18} /> },
+      { id: 'ai-research', label: 'AI Research', icon: <Bot size={18} /> },
+    ],
+  },
+  {
+    title: 'SISTEMA',
+    items: [
+      { id: 'ingestion', label: 'Ingestão', icon: <Download size={18} /> },
+      { id: 'banco', label: 'Banco', icon: <Database size={18} /> },
+      { id: 'config', label: 'Config', icon: <Settings size={18} /> },
+    ],
+  },
+];
+
+const PILLAR_COLORS: Record<string, string> = {
+  cvm: 'var(--cvm-color)',
+  acoes: 'var(--acoes-color)',
+  crypto: 'var(--crypto-color)',
+};
 
 export const DashboardSidebar = ({
   collapsed,
   activeView,
   onViewChange,
-  showAnalytics = false,
-  viewMode: externalViewMode,
-  onViewModeChange,
 }: DashboardSidebarProps) => {
-  // Estado interno para o modo de visualização (se não for controlado externamente)
-  const [internalViewMode, setInternalViewMode] = useState<ViewMode>(getDefaultViewMode);
+  const { theme, toggleTheme } = useTheme();
 
-  // Usar modo externo se fornecido, caso contrário usar interno
-  const viewMode = externalViewMode ?? internalViewMode;
-
-  // Handler para mudança de modo
-  const handleViewModeChange = (newMode: ViewMode) => {
-    saveViewMode(newMode);
-    if (onViewModeChange) {
-      onViewModeChange(newMode);
-    } else {
-      setInternalViewMode(newMode);
-    }
-  };
-
-  // Obter grupos de navegação baseado no modo atual
-  const navGroups = getMenuGroupsByViewMode(viewMode, showAnalytics);
+  // Mock status data — will be replaced with real API data
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 20 * 60 * 60 * 1000);
+  const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
 
   return (
     <aside
       className={cn(
-        'bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300 ease-in-out h-[calc(100vh-56px)] sticky top-14',
-        collapsed ? 'w-16' : 'w-60'
+        'flex flex-col h-[calc(100vh-var(--header-height))] bg-[var(--bg-secondary)] border-r border-[var(--border-subtle)] transition-all duration-300 fixed top-[var(--header-height)] left-0 z-40',
+        collapsed ? 'w-[var(--sidebar-collapsed)]' : 'w-[var(--sidebar-width)]'
       )}
     >
-      <nav className="flex-1 overflow-y-auto py-4 px-2">
-        {navGroups.map((group, groupIndex) => (
-          <div key={group.id} className={cn('mb-6', groupIndex > 0 && 'mt-2')}>
-            {!collapsed && (
-              <h3 className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground sidebar-group-label">
-                {group.label}
-              </h3>
-            )}
+      {/* Logo area */}
+      <div className="flex items-center gap-3 px-4 h-14 border-b border-[var(--border-subtle)]">
+        {!collapsed && (
+          <>
+            <img src="/src/assets/logo.svg" alt="FDL" className="w-7 h-7" />
+            <span className="font-semibold text-[var(--text-primary)] text-sm tracking-tight">
+              Fin·Data·Lab
+            </span>
+          </>
+        )}
+        {collapsed && (
+          <img src="/src/assets/logo.svg" alt="FDL" className="w-7 h-7 mx-auto" />
+        )}
+      </div>
 
-            <div className="space-y-1">
-              {group.items.filter(item => !item.hidden).map((item) => {
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-3">
+        {SECTIONS.map((section) => (
+          <div key={section.title} className="mb-4">
+            {!collapsed && (
+              <div className="px-4 py-2">
+                <span className="text-[var(--text-muted)] text-xs uppercase tracking-wider font-medium">
+                  {section.title}
+                </span>
+              </div>
+            )}
+            <ul className="space-y-0.5">
+              {section.items.map((item) => {
                 const isActive = activeView === item.id;
-                const Icon = item.icon;
+                const pillarColor = item.pillar ? PILLAR_COLORS[item.pillar] : undefined;
 
                 return (
-                  <button
-                    key={item.id}
-                    onClick={() => onViewChange(item.id)}
-                    className={cn(
-                      'w-full relative flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group',
-                      isActive
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                        : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                    )}
-                  >
-                    {isActive && (
-                      <span
-                        className="nav-indicator"
-                        style={{
-                          backgroundColor: `hsl(var(--${group.color}))`,
-                        }}
-                      />
-                    )}
-
-                    <div
+                  <li key={item.id}>
+                    <button
+                      onClick={() => onViewChange(item.id)}
                       className={cn(
-                        'flex items-center justify-center w-8 h-8 rounded-lg transition-all',
+                        'w-full flex items-center gap-3 px-4 py-2 text-sm transition-all duration-150 relative',
                         isActive
-                          ? `bg-${group.color}/20`
-                          : 'bg-transparent group-hover:bg-secondary'
+                          ? 'text-[var(--text-primary)]'
+                          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)]'
                       )}
                       style={
                         isActive
                           ? {
-                            backgroundColor: `hsl(var(--${group.color}) / 0.15)`,
-                          }
-                          : {}
+                              backgroundColor: 'var(--accent-light)',
+                              borderLeft: `3px solid var(--accent-primary)`,
+                            }
+                          : { borderLeft: '3px solid transparent' }
                       }
+                      title={collapsed ? item.label : undefined}
                     >
-                      <Icon
-                        className={cn(
-                          'w-5 h-5 transition-colors',
-                          isActive
-                            ? ''
-                            : 'text-muted-foreground group-hover:text-foreground'
-                        )}
-                        style={
-                          isActive
-                            ? { color: `hsl(var(--${group.color}))` }
-                            : {}
-                        }
-                      />
-                    </div>
-
-                    {!collapsed && (
                       <span
-                        className={cn(
-                          'text-sm font-medium transition-opacity sidebar-text',
-                          isActive ? 'text-foreground' : ''
-                        )}
+                        style={{
+                          color: pillarColor || 'var(--text-muted)',
+                        }}
                       >
-                        {item.label}
+                        {item.icon}
                       </span>
-                    )}
-                  </button>
+                      {!collapsed && (
+                        <span className="truncate">{item.label}</span>
+                      )}
+                    </button>
+                  </li>
                 );
               })}
-            </div>
+            </ul>
           </div>
         ))}
       </nav>
 
-      {/* SELETOR DE MODO DE VISUALIZAÇÃO */}
-      <div className={cn(
-        "border-t border-sidebar-border",
-        collapsed ? "p-2" : "p-4"
-      )}>
-        <ViewModeSelector
-          currentViewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          collapsed={collapsed}
-        />
-      </div>
+      {/* Bottom status area */}
+      <div className="border-t border-[var(--border-subtle)] p-3 space-y-2">
+        {!collapsed && (
+          <>
+            <div className="space-y-1.5">
+              <StatusIndicator lastUpdate={yesterday} thresholds={{ green: 24, yellow: 48 }} />
+              <StatusIndicator lastUpdate={twoDaysAgo} thresholds={{ green: 24, yellow: 48 }} />
+            </div>
 
-      {/* VERSÃO */}
-      {!collapsed && (
-        <div className="px-4 pb-4">
-          <div className="glass-effect rounded-lg p-3">
-            <p className="text-xs text-muted-foreground">Fin Data Lab</p>
-            <p className="text-sm font-medium">v1.0.0</p>
-          </div>
-        </div>
-      )}
+            <div className="flex items-center justify-between pt-2">
+              <button
+                onClick={toggleTheme}
+                className="flex items-center gap-2 px-2 py-1.5 rounded text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] transition-colors"
+                title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
+              >
+                {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+                <span className="text-xs">
+                  {theme === 'light' ? 'Escuro' : 'Claro'}
+                </span>
+              </button>
+              <span className="text-[var(--text-muted)] text-xs">FDL v1.0</span>
+            </div>
+          </>
+        )}
+        {collapsed && (
+          <button
+            onClick={toggleTheme}
+            className="w-full flex justify-center py-1.5 text-[var(--text-secondary)] hover:bg-[var(--bg-primary)] rounded transition-colors"
+            title={theme === 'light' ? 'Modo escuro' : 'Modo claro'}
+          >
+            {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+        )}
+      </div>
     </aside>
   );
 };
 
-// Exportação para compatibilidade com código existente
-export { getMenuGroupsByViewMode };
+export { getMenuGroupsByViewMode } from '@/config/menuConfig';

@@ -26,10 +26,10 @@ interface CacheEntry<T> {
 
 // Duração do cache em milissegundos
 const CACHE_DURATIONS = {
-    fundDetail: 24 * 60 * 60 * 1000,     // 24 horas
-    fundHistory: 24 * 60 * 60 * 1000,    // 24 horas
-    fundMetrics: 24 * 60 * 60 * 1000,    // 24 horas
-    fundComposition: 24 * 60 * 60 * 1000, // 24 horas
+    fundDetail: 60 * 60 * 1000,          // 60 min
+    fundHistory: 240 * 60 * 1000,         // 240 min
+    fundMetrics: 360 * 60 * 1000,         // 360 min
+    fundComposition: 720 * 60 * 1000,    // 720 min
     fundPortfolio: 24 * 60 * 60 * 1000,   // 24 horas
     fundStructure: 24 * 60 * 60 * 1000,   // 24 horas
     fundTopAssets: 24 * 60 * 60 * 1000,   // 24 horas

@@ -47,7 +47,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingSkeleton as Skeleton } from '@/components/ui/LoadingSkeleton';
 import { FundingService } from '../services/api';
 import { FundSelector } from '@/components/dashboard/FundSelector';
 
@@ -101,49 +101,49 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
         queryKey: ['fund', selectedCnpj],
         queryFn: () => FundingService.getFundDetail(selectedCnpj!),
         enabled: !!selectedCnpj,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 60, // 60 min
     });
 
     const { data: history, isLoading: loadingHistory } = useQuery({
         queryKey: ['history', selectedCnpj],
         queryFn: () => FundingService.getFundHistory(selectedCnpj!),
         enabled: !!selectedCnpj,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 240, // 240 min
     });
 
     const { data: metrics, isLoading: loadingMetrics } = useQuery({
         queryKey: ['metrics', selectedCnpj],
         queryFn: () => FundingService.getFundMetrics(selectedCnpj!),
         enabled: !!selectedCnpj,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 360, // 360 min
     });
 
     const { data: composition, isLoading: loadingComposition } = useQuery({
         queryKey: ['composition', selectedCnpj],
         queryFn: () => FundingService.getFundComposition(selectedCnpj!),
         enabled: !!selectedCnpj,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 720, // 720 min
     });
 
     const { data: portfolio, isLoading: loadingPortfolio } = useQuery({
         queryKey: ['portfolio', selectedCnpj],
         queryFn: () => FundingService.getPortfolioDetailed(selectedCnpj!),
         enabled: !!selectedCnpj,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 60, // 60 min
     });
 
     const { data: structure, isLoading: loadingStructure } = useQuery({
         queryKey: ['structure', selectedCnpj],
         queryFn: () => FundingService.getFundStructure(selectedCnpj!),
         enabled: !!selectedCnpj,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 60, // 60 min
     });
 
     const { data: topAssets, isLoading: loadingTopAssets } = useQuery({
         queryKey: ['topAssets', selectedCnpj],
         queryFn: () => FundingService.getTopAssets(selectedCnpj!, 15),
         enabled: !!selectedCnpj,
-        staleTime: 1000 * 60 * 5,
+        staleTime: 1000 * 60 * 60, // 60 min
     });
 
     useEffect(() => {
@@ -172,35 +172,7 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
         alert("Iniciando exportação para PDF... (Funcionalidade em desenvolvimento)");
     };
 
-    // Loading State
-    if (loadingFund) {
-        return (
-            <div className="bg-[#020617] min-h-screen text-slate-100 font-sans p-6">
-                <div className="max-w-7xl mx-auto space-y-6">
-                    <Skeleton className="h-8 w-1/3 bg-slate-800" />
-                    <Skeleton className="h-12 w-2/3 bg-slate-800" />
-                    <div className="grid grid-cols-2 gap-4">
-                        <Skeleton className="h-24 bg-slate-800" />
-                        <Skeleton className="h-24 bg-slate-800" />
-                    </div>
-                    <Skeleton className="h-[400px] bg-slate-800" />
-                </div>
-            </div>
-        );
-    }
-
-    // Error State
-    if (isError || !fund) {
-        return (
-            <div className="bg-[#020617] min-h-screen text-slate-100 font-sans">
-                <div className="flex flex-col items-center justify-center h-[calc(100vh-100px)] text-slate-400">
-                    <AlertCircle className="w-12 h-12 mb-4 text-rose-500" />
-                    <h2 className="text-xl font-semibold text-slate-200">Fundo não encontrado</h2>
-                    <p>Verifique o CNPJ e tente novamente.</p>
-                </div>
-            </div>
-        );
-    }
+    // Progressive rendering: each section shows its own skeleton — no global barrier
 
     // Calculate derived data
     const lastQuota = history && history.length > 0 ? history[history.length - 1] : null;
@@ -228,10 +200,10 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
     ) || [];
 
     return (
-        <div className="bg-[#020617] min-h-screen text-slate-100 font-sans selection:bg-emerald-500/30">
+        <div className="bg-[var(--bg-primary)] min-h-screen text-[var(--text-primary)] font-sans">
 
             {/* --- FUND SELECTOR --- */}
-            <div className="py-4 px-6 border-b border-slate-800 bg-[#0F172A]">
+            <div className="py-4 px-6 border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)]">
                 <div className="max-w-7xl mx-auto">
                     <div className="flex items-center gap-4">
                         <div className="flex-1 max-w-xl">
@@ -248,79 +220,90 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
             </div>
 
             {/* --- HERO SECTION --- */}
-            <div className="relative overflow-hidden border-b border-slate-800 bg-[#0F172A] p-6 lg:p-10">
+            <div className="relative overflow-hidden border-b border-[var(--border-subtle)] bg-[var(--bg-secondary)] p-6 lg:p-10">
                 <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                     <Building2 size={300} />
                 </div>
 
                 <div className="relative z-10 max-w-7xl mx-auto">
-                    <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
-                        <div className="space-y-4 max-w-2xl">
-                            <div className="flex gap-2">
-                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
-                                    {fund.classe || 'Fundo'}
-                                </Badge>
-                                <Badge variant="outline" className="text-slate-400 border-slate-700">
-                                    {fund.publico_alvo || 'Investidores em Geral'}
-                                </Badge>
-                                {fund.fundo_cotas === 'S' && (
-                                    <Badge variant="outline" className="text-blue-400 border-blue-700">
-                                        FIC
-                                    </Badge>
-                                )}
-                            </div>
-
-                            <h1 className="text-3xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-                                {fund.denom_social}
-                            </h1>
-
-                            <div className="flex items-center gap-2 text-slate-400 text-sm md:text-base">
-                                <p className="line-clamp-2 md:line-clamp-none max-w-xl">{fundDesc}</p>
-                                <Button variant="ghost" size="icon" onClick={() => setIsEditOpen(true)} className="h-6 w-6 text-slate-500 hover:text-emerald-400">
-                                    <Edit3 size={14} />
-                                </Button>
+                    {loadingFund ? (
+                        <div className="space-y-4">
+                            <Skeleton variant="text" width={120} height={24} />
+                            <Skeleton variant="text" width="60%" height={48} />
+                            <Skeleton variant="text" width="40%" height={20} />
+                            <div className="flex gap-4 mt-4">
+                                <Skeleton variant="card" width={200} height={80} />
+                                <Skeleton variant="card" width={200} height={80} />
                             </div>
                         </div>
-
-                        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                            <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm min-w-[200px]">
-                                <CardContent className="p-4">
-                                    <p className="text-slate-500 text-xs uppercase font-medium">Cota Atual</p>
-                                    <div className="flex items-baseline gap-2 mt-1">
-                                        <span className="text-2xl font-bold text-white">
-                                            R$ {lastQuota?.vl_quota?.toFixed(4) || '-'}
-                                        </span>
-                                        {quotaChange !== 0 && (
-                                            <span className={`text-xs flex items-center ${quotaChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                                {quotaChange >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                                                {quotaChange >= 0 ? '+' : ''}{quotaChange.toFixed(2)}%
-                                            </span>
+                    ) : isError || !fund ? (
+                        <div className="flex flex-col items-center justify-center py-12 text-[var(--text-muted)]">
+                            <AlertCircle className="w-12 h-12 mb-4 text-[var(--negative)]" />
+                            <h2 className="text-xl font-semibold text-[var(--text-primary)]">Fundo não encontrado</h2>
+                            <p>Verifique o CNPJ e tente novamente.</p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex flex-col lg:flex-row justify-between items-start gap-6">
+                                <div className="space-y-4 max-w-2xl">
+                                    <div className="flex gap-2">
+                                        <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20 transition-colors">
+                                            {fund.classe || 'Fundo'}
+                                        </Badge>
+                                        <Badge variant="outline" className="text-slate-400 border-slate-700">
+                                            {fund.publico_alvo || 'Investidores em Geral'}
+                                        </Badge>
+                                        {fund.fundo_cotas === 'S' && (
+                                            <Badge variant="outline" className="text-blue-400 border-blue-700">
+                                                FIC
+                                            </Badge>
                                         )}
                                     </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm min-w-[200px]">
-                                <CardContent className="p-4">
-                                    <p className="text-slate-500 text-xs uppercase font-medium">Patrimônio Líquido</p>
-                                    <div className="flex items-baseline gap-2 mt-1">
-                                        <span className="text-2xl font-bold text-white">
-                                            {lastQuota?.vl_patrim_liq ? formatCurrency(lastQuota.vl_patrim_liq) : '-'}
-                                        </span>
+                                    <h1 className="text-3xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+                                        {fund.denom_social}
+                                    </h1>
+                                    <div className="flex items-center gap-2 text-slate-400 text-sm md:text-base">
+                                        <p className="line-clamp-2 md:line-clamp-none max-w-xl">{fundDesc}</p>
+                                        <Button variant="ghost" size="icon" onClick={() => setIsEditOpen(true)} className="h-6 w-6 text-slate-500 hover:text-emerald-400">
+                                            <Edit3 size={14} />
+                                        </Button>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-4 mt-8">
-                        <Button variant="outline" className="border-slate-700 hover:bg-slate-800 text-slate-300" onClick={handleExport}>
-                            <Download size={16} className="mr-2" /> Exportar PDF
-                        </Button>
-                        <Button variant="outline" className="border-slate-700 hover:bg-slate-800 text-slate-300">
-                            <Share2 size={16} className="mr-2" /> Compartilhar
-                        </Button>
-                    </div>
+                                </div>
+                                <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                                    <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm min-w-[200px]">
+                                        <CardContent className="p-4">
+                                            <p className="text-slate-500 text-xs uppercase font-medium">Cota Atual</p>
+                                            <div className="flex items-baseline gap-2 mt-1">
+                                                <span className="text-2xl font-bold text-white">R$ {lastQuota?.vl_quota?.toFixed(4) || '-'}</span>
+                                                {quotaChange !== 0 && (
+                                                    <span className={`text-xs flex items-center ${quotaChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                        {quotaChange >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                                                        {quotaChange >= 0 ? '+' : ''}{quotaChange.toFixed(2)}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                    <Card className="bg-slate-900/50 border-slate-800 backdrop-blur-sm min-w-[200px]">
+                                        <CardContent className="p-4">
+                                            <p className="text-slate-500 text-xs uppercase font-medium">Patrimônio Líquido</p>
+                                            <div className="flex items-baseline gap-2 mt-1">
+                                                <span className="text-2xl font-bold text-white">{lastQuota?.vl_patrim_liq ? formatCurrency(lastQuota.vl_patrim_liq) : '-'}</span>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                            <div className="flex flex-wrap gap-4 mt-8">
+                                <Button variant="outline" className="border-slate-700 hover:bg-slate-800 text-slate-300" onClick={handleExport}>
+                                    <Download size={16} className="mr-2" /> Exportar PDF
+                                </Button>
+                                <Button variant="outline" className="border-slate-700 hover:bg-slate-800 text-slate-300">
+                                    <Share2 size={16} className="mr-2" /> Compartilhar
+                                </Button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
 
@@ -339,7 +322,18 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
 
                     {/* OVERVIEW TAB */}
                     <TabsContent value="overview" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {loadingFund ? (
+                            <div className="space-y-4">
+                                <Skeleton variant="card" height={200} />
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <Skeleton variant="card" height={200} />
+                                    <Skeleton variant="card" height={200} />
+                                    <Skeleton variant="card" height={200} />
+                                </div>
+                            </div>
+                        ) : (
+                            <>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                             {/* FEES & TERMS */}
                             <Card className="bg-slate-900/30 border-slate-800 md:col-span-2">
@@ -443,6 +437,8 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                 </CardContent>
                             </Card>
                         </div>
+                            </>
+                        )}
                     </TabsContent>
 
 
@@ -825,7 +821,13 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
 
                     {/* AI ANALYST TAB */}
                     <TabsContent value="ai" className="h-[600px] flex gap-4">
-                        <Card className="flex-1 bg-slate-950 border-indigo-500/30 border shadow-lg shadow-indigo-500/5 flex flex-col">
+                        {loadingFund ? (
+                            <div className="flex-1 space-y-4">
+                                <Skeleton variant="card" height={400} />
+                            </div>
+                        ) : (
+                            <>
+                                <Card className="flex-1 bg-slate-950 border-indigo-500/30 border shadow-lg shadow-indigo-500/5 flex flex-col">
                             <CardHeader className="bg-slate-900/50 border-b border-slate-800">
                                 <CardTitle className="flex items-center gap-2 text-indigo-400">
                                     <Bot size={20} />
@@ -893,6 +895,8 @@ const FundLab = ({ initialCnpj, defaultTab = "overview" }: FundLabProps) => {
                                 </div>
                             </CardContent>
                         </Card>
+                            </>
+                        )}
                     </TabsContent>
 
                 </Tabs>

@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"uvicorn api.main:app --reload --port 8000\" \"cd site && npm run dev\"",
-    "WARN: use Ctrl+C (not taskkill /F /IM node.exe) to stop dev — see RUNNING.md": ""
+    "WARN: use Ctrl+C (not taskkill /F /IM node.exe) to stop dev — see RUNNING.md": "",
     "api": "uvicorn api.main:app --reload --port 8000",
     "frontend": "cd site && npm run dev",
     "install:all": "cd site && npm install"
